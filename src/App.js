@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { t } from "./theme";
-import { SPORTS } from "./data";
+import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sports";
 import {
-  fetchPopular, fetchTopRated, searchMovies,
-  fetchMovieDetails, fetchWatchProviders, fetchMovieCredits,
+  fetchPopular, fetchTopRated, searchMulti,
+  fetchDetails, fetchProviders, fetchCredits, fetchSimilar,
   LOGO_URL,
 } from "./services/tmdb";
 import { Navigation } from "./components/Navigation";
@@ -75,6 +75,10 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedProviders, setSelectedProviders] = useState(null);
   const [selectedCredits, setSelectedCredits] = useState([]);
+  const [similarMovies, setSimilarMovies] = useState([]);
+
+  // Sport
+  const [sportsDiscipline, setSportsDiscipline] = useState("all");
 
   // Stan ładowania
   const [homeLoading, setHomeLoading] = useState(true);
@@ -106,7 +110,7 @@ function App() {
     }
     setSearchLoading(true);
     const timer = setTimeout(() => {
-      searchMovies(searchQuery)
+      searchMulti(searchQuery)
         .then(setSearchResults)
         .catch(() => setSearchResults([]))
         .finally(() => setSearchLoading(false));
@@ -119,18 +123,22 @@ function App() {
     setSelectedMovie(movie);
     setSelectedProviders(null);
     setSelectedCredits([]);
+    setSimilarMovies([]);
     setDetailLoading(true);
     setScreen("detail");
 
     try {
-      const [details, providers, credits] = await Promise.all([
-        fetchMovieDetails(movie.id),
-        fetchWatchProviders(movie.id),
-        fetchMovieCredits(movie.id),
+      const mediaType = movie.mediaType ?? "movie";
+      const [details, providers, credits, similar] = await Promise.all([
+        fetchDetails(movie.id, mediaType),
+        fetchProviders(movie.id, mediaType),
+        fetchCredits(movie.id, mediaType),
+        fetchSimilar(movie.id, mediaType),
       ]);
       setSelectedMovie(details);
       setSelectedProviders(providers);
       setSelectedCredits(credits);
+      setSimilarMovies(similar);
     } catch (e) {
       // Zostaw to co mamy z listy
     } finally {
@@ -217,7 +225,7 @@ function App() {
                   Więcej →
                 </button>
               </div>
-              {SPORTS.slice(0, 2).map(s => <SportCard key={s.id} sport={s} />)}
+              {SPORTS_EVENTS.slice(0, 3).map(s => <SportCard key={s.id} sport={s} />)}
             </div>
           </>
         )}
@@ -494,6 +502,18 @@ function App() {
             )}
           </div>
 
+          {/* Podobne filmy */}
+          {similarMovies.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Podobne filmy</SectionHeader>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                {similarMovies.map(s => (
+                  <MovieCard key={s.id} movie={s} onOpen={openMovie} compact />
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ marginBottom: 20 }}>
             <button
               onClick={() => toggleSaved(m.id)}
@@ -519,15 +539,44 @@ function App() {
 
   // ====== SPORTS ======
   if (screen === "sports") {
+    const filteredSports = filterByDiscipline(SPORTS_EVENTS, sportsDiscipline);
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px" }}><Logo /></div>
-        <div style={{ padding: "8px 20px 20px" }}>
+        <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ Sport na żywo</h2>
           <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Najbliższe transmisje w Polsce</p>
         </div>
+        <div style={{ padding: "0 20px 16px", display: "flex", gap: 8, overflowX: "auto" }}>
+          {DISCIPLINES.map(d => (
+            <button
+              key={d.id}
+              onClick={() => setSportsDiscipline(d.id)}
+              style={{
+                flexShrink: 0,
+                padding: "7px 14px",
+                borderRadius: 20,
+                border: "1.5px solid " + (sportsDiscipline === d.id ? t.a : t.b),
+                background: sportsDiscipline === d.id ? t.ad : t.s,
+                color: sportsDiscipline === d.id ? t.a : t.tm,
+                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {d.icon} {d.label}
+            </button>
+          ))}
+        </div>
         <div style={{ padding: "0 20px" }}>
-          {SPORTS.map(s => <SportCard key={s.id} sport={s} />)}
+          {filteredSports.length > 0
+            ? filteredSports.map(s => <SportCard key={s.id} sport={s} />)
+            : (
+              <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+                <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
+              </div>
+            )
+          }
         </div>
         <Navigation screen={screen} setScreen={setScreen} />
       </div>

@@ -12,7 +12,17 @@ const GENRE_MAP = {
   53: "Thriller", 10752: "Wojenny", 37: "Western",
 };
 
-/** Mapuje surowy obiekt TMDB na format używany przez aplikację. */
+function apiFetch(path, extraParams = "") {
+  const sep = path.includes("?") ? "&" : "?";
+  return fetch(
+    `${BASE_URL}${path}${sep}api_key=${API_KEY}&language=pl-PL${extraParams}`
+  ).then(res => {
+    if (!res.ok) throw new Error(`TMDB błąd ${res.status}`);
+    return res.json();
+  });
+}
+
+/** Mapuje film z TMDB na format aplikacji. */
 export function mapMovie(m) {
   const genreId = m.genre_ids?.[0] ?? m.genres?.[0]?.id;
   const genreName = m.genres?.[0]?.name ?? GENRE_MAP[genreId] ?? "Film";
@@ -26,63 +36,105 @@ export function mapMovie(m) {
     duration: m.runtime ? `${Math.floor(m.runtime / 60)}h ${m.runtime % 60}m` : null,
     synopsis: m.overview || "Brak opisu.",
     platforms: [],
+    mediaType: "movie",
   };
 }
 
-function apiFetch(path, extraParams = "") {
-  const sep = path.includes("?") ? "&" : "?";
-  return fetch(
-    `${BASE_URL}${path}${sep}api_key=${API_KEY}&language=pl-PL${extraParams}`
-  ).then(res => {
-    if (!res.ok) throw new Error(`TMDB błąd ${res.status}`);
-    return res.json();
-  });
+/** Mapuje serial (TV) z TMDB na format aplikacji. */
+function mapTV(m) {
+  const genre = m.genres?.[0]?.name ?? "Serial";
+  const seasons = m.number_of_seasons;
+  return {
+    id: m.id,
+    title: m.name,
+    year: m.first_air_date?.slice(0, 4) ?? "—",
+    genre,
+    imdb: m.vote_average != null ? Number(m.vote_average.toFixed(1)) : null,
+    poster: m.poster_path ? `${POSTER_URL}${m.poster_path}` : null,
+    duration: seasons ? `${seasons} sezon${seasons === 1 ? "" : seasons < 5 ? "y" : "ów"}` : null,
+    synopsis: m.overview || "Brak opisu.",
+    platforms: [],
+    mediaType: "tv",
+  };
 }
 
-/** Popularne filmy — zwraca tablicę zmapowanych filmów. */
+/** Mapuje wynik /search/multi (movie lub tv). */
+function mapMultiResult(item) {
+  if (item.media_type === "tv") {
+    const genre = GENRE_MAP[item.genre_ids?.[0]] ?? "Serial";
+    return {
+      id: item.id,
+      title: item.name,
+      year: item.first_air_date?.slice(0, 4) ?? "—",
+      genre,
+      imdb: item.vote_average != null ? Number(item.vote_average.toFixed(1)) : null,
+      poster: item.poster_path ? `${POSTER_URL}${item.poster_path}` : null,
+      duration: null,
+      synopsis: item.overview || "Brak opisu.",
+      platforms: [],
+      mediaType: "tv",
+    };
+  }
+  return mapMovie(item);
+}
+
+// ── Endpointy ────────────────────────────────────────────────────────────────
+
 export function fetchPopular() {
-  return apiFetch("/movie/popular").then(data => data.results.map(mapMovie));
+  return apiFetch("/movie/popular").then(d => d.results.map(mapMovie));
 }
 
-/** Filmy najwyżej oceniane — zwraca tablicę zmapowanych filmów. */
 export function fetchTopRated() {
-  return apiFetch("/movie/top_rated").then(data => data.results.map(mapMovie));
+  return apiFetch("/movie/top_rated").then(d => d.results.map(mapMovie));
 }
 
-/** Wyszukiwanie po frazie — zwraca tablicę zmapowanych filmów. */
-export function searchMovies(query) {
+/** Wyszukuje filmy i seriale jednocześnie (/search/multi). */
+export function searchMulti(query) {
   if (!query.trim()) return Promise.resolve([]);
-  return apiFetch(`/search/movie?query=${encodeURIComponent(query)}`).then(
-    data => data.results.map(mapMovie)
+  return apiFetch(`/search/multi?query=${encodeURIComponent(query)}`).then(d =>
+    d.results
+      .filter(item => item.media_type === "movie" || item.media_type === "tv")
+      .map(mapMultiResult)
   );
 }
 
-/**
- * Platformy streamingowe dla danego filmu w Polsce.
- * Zwraca obiekt `{ flatrate, rent, buy }` lub `null` gdy brak danych dla PL.
- */
-export function fetchWatchProviders(movieId) {
-  return apiFetch(`/movie/${movieId}/watch/providers`, "&region=PL").then(
-    data => data.results?.PL ?? null
-  );
-}
-
-/** Pełne szczegóły filmu (runtime, gatunki, itp.). */
-export function fetchMovieDetails(movieId) {
-  return apiFetch(`/movie/${movieId}`).then(mapMovie);
+/** Pełne szczegóły — film lub serial. */
+export function fetchDetails(id, mediaType = "movie") {
+  const path = mediaType === "tv" ? `/tv/${id}` : `/movie/${id}`;
+  return apiFetch(path).then(mediaType === "tv" ? mapTV : mapMovie);
 }
 
 /**
- * Obsada filmu — zwraca pierwszych 5 aktorów.
- * Każdy obiekt: { id, name, character, photo }
+ * Platformy streamingowe dla Polski.
+ * Zwraca { flatrate, rent, buy } lub null.
  */
-export function fetchMovieCredits(movieId) {
-  return apiFetch(`/movie/${movieId}/credits`).then(data =>
-    (data.cast ?? []).slice(0, 5).map(a => ({
+export function fetchProviders(id, mediaType = "movie") {
+  const path = mediaType === "tv"
+    ? `/tv/${id}/watch/providers`
+    : `/movie/${id}/watch/providers`;
+  return apiFetch(path, "&region=PL").then(d => d.results?.PL ?? null);
+}
+
+/** Obsada — pierwsze 5 aktorów. */
+export function fetchCredits(id, mediaType = "movie") {
+  const path = mediaType === "tv"
+    ? `/tv/${id}/credits`
+    : `/movie/${id}/credits`;
+  return apiFetch(path).then(d =>
+    (d.cast ?? []).slice(0, 5).map(a => ({
       id: a.id,
       name: a.name,
       character: a.character,
       photo: a.profile_path ? `${PROFILE_URL}${a.profile_path}` : null,
     }))
   );
+}
+
+/** Podobne filmy/seriale — pierwsze 10. */
+export function fetchSimilar(id, mediaType = "movie") {
+  const path = mediaType === "tv"
+    ? `/tv/${id}/similar`
+    : `/movie/${id}/similar`;
+  const mapper = mediaType === "tv" ? mapTV : mapMovie;
+  return apiFetch(path).then(d => d.results.slice(0, 10).map(mapper));
 }

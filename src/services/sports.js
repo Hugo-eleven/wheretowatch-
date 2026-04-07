@@ -1,0 +1,186 @@
+export const DISCIPLINES = [
+  { id: "all",        label: "Wszystkie",   icon: "🏆" },
+  { id: "football",   label: "Piłka nożna", icon: "⚽" },
+  { id: "tennis",     label: "Tenis",        icon: "🎾" },
+  { id: "f1",         label: "F1",           icon: "🏎️" },
+  { id: "basketball", label: "Koszykówka",   icon: "🏀" },
+  { id: "volleyball", label: "Siatkówka",    icon: "🏐" },
+];
+
+// Ceny aktualne na kwiecień 2026
+const P = {
+  CANAL:    { name: "Canal+",        price: "45 zł/msc" },
+  POLSAT:   { name: "Polsat Sport",  price: "30 zł/msc" },
+  TVP:      { name: "TVP Sport",     price: "Za darmo"  },
+  TVP1:     { name: "TVP 1",         price: "Za darmo"  },
+  EUROSPORT:{ name: "Eurosport",     price: "29.99 zł/msc" },
+  MAX:      { name: "Max",           price: "29.99 zł/msc" },
+  VIAPLAY:  { name: "Viaplay",       price: "34 zł/msc" },
+  ELEVEN:   { name: "Eleven Sports", price: "25 zł/msc" },
+};
+
+export const SPORTS_EVENTS = [
+  // ── PIŁKA NOŻNA ─────────────────────────────────────────────
+  {
+    id: 1,
+    discipline: "football",
+    event: "Liga Mistrzów — Półfinał",
+    teams: "Real Madryt vs Arsenal",
+    date: "8 kwi 2026, 21:00",
+    icon: "⚽",
+    platforms: [P.CANAL, P.TVP],
+  },
+  {
+    id: 2,
+    discipline: "football",
+    event: "Liga Mistrzów — Półfinał",
+    teams: "Barcelona vs Bayern Monachium",
+    date: "9 kwi 2026, 21:00",
+    icon: "⚽",
+    platforms: [P.CANAL],
+  },
+  {
+    id: 3,
+    discipline: "football",
+    event: "Liga Europy — Ćwierćfinał",
+    teams: "Roma vs Lyon",
+    date: "10 kwi 2026, 21:00",
+    icon: "⚽",
+    platforms: [P.POLSAT, P.TVP],
+  },
+  {
+    id: 4,
+    discipline: "football",
+    event: "Ekstraklasa — 30. kolejka",
+    teams: "Lech Poznań vs Legia Warszawa",
+    date: "12 kwi 2026, 17:30",
+    icon: "⚽",
+    platforms: [P.CANAL],
+  },
+  {
+    id: 5,
+    discipline: "football",
+    event: "Ekstraklasa — 30. kolejka",
+    teams: "Raków Częstochowa vs Wisła Kraków",
+    date: "12 kwi 2026, 15:00",
+    icon: "⚽",
+    platforms: [P.CANAL],
+  },
+  {
+    id: 6,
+    discipline: "football",
+    event: "Liga Mistrzów — Finał",
+    teams: "Finał w Monachium",
+    date: "30 maj 2026, 21:00",
+    icon: "⚽",
+    platforms: [P.CANAL, P.TVP1],
+  },
+  // ── TENIS ───────────────────────────────────────────────────
+  {
+    id: 7,
+    discipline: "tennis",
+    event: "Roland Garros — Finał kobiet",
+    teams: "Świątek vs Sabalenka",
+    date: "12 cze 2026, 15:00",
+    icon: "🎾",
+    platforms: [P.EUROSPORT, P.TVP],
+  },
+  {
+    id: 8,
+    discipline: "tennis",
+    event: "Roland Garros — Finał mężczyzn",
+    teams: "Finał turnieju",
+    date: "13 cze 2026, 15:00",
+    icon: "🎾",
+    platforms: [P.EUROSPORT],
+  },
+  {
+    id: 9,
+    discipline: "tennis",
+    event: "Wimbledon — Finał kobiet",
+    teams: "Finał turnieju",
+    date: "12 lip 2026, 14:00",
+    icon: "🎾",
+    platforms: [P.EUROSPORT],
+  },
+  {
+    id: 10,
+    discipline: "tennis",
+    event: "Wimbledon — Finał mężczyzn",
+    teams: "Finał turnieju",
+    date: "13 lip 2026, 14:00",
+    icon: "🎾",
+    platforms: [P.EUROSPORT, P.TVP],
+  },
+  // ── FORMUŁA 1 ───────────────────────────────────────────────
+  {
+    id: 11,
+    discipline: "f1",
+    event: "GP Emilia-Romagna — Wyścig",
+    teams: "Formula 1",
+    date: "18 maj 2026, 15:00",
+    icon: "🏎️",
+    platforms: [P.VIAPLAY],
+  },
+  {
+    id: 12,
+    discipline: "f1",
+    event: "GP Monako — Wyścig",
+    teams: "Formula 1",
+    date: "24 maj 2026, 15:00",
+    icon: "🏎️",
+    platforms: [P.VIAPLAY],
+  },
+  {
+    id: 13,
+    discipline: "f1",
+    event: "GP Kanady — Wyścig",
+    teams: "Formula 1",
+    date: "14 cze 2026, 20:00",
+    icon: "🏎️",
+    platforms: [P.VIAPLAY],
+  },
+  // ── KOSZYKÓWKA ──────────────────────────────────────────────
+  {
+    id: 14,
+    discipline: "basketball",
+    event: "NBA Playoffs — Finał konferencji",
+    teams: "Celtics vs Knicks",
+    date: "26 maj 2026, 21:30",
+    icon: "🏀",
+    platforms: [P.MAX, P.ELEVEN],
+  },
+  {
+    id: 15,
+    discipline: "basketball",
+    event: "EuroLeague Final Four",
+    teams: "Real Madryt vs Olympiakos",
+    date: "24 maj 2026, 18:00",
+    icon: "🏀",
+    platforms: [P.ELEVEN],
+  },
+  // ── SIATKÓWKA ───────────────────────────────────────────────
+  {
+    id: 16,
+    discipline: "volleyball",
+    event: "Liga Narodów — Polska vs Brazylia",
+    teams: "Polska vs Brazylia",
+    date: "5 cze 2026, 20:00",
+    icon: "🏐",
+    platforms: [P.POLSAT, P.TVP],
+  },
+  {
+    id: 17,
+    discipline: "volleyball",
+    event: "Liga Narodów — Polska vs Francja",
+    teams: "Polska vs Francja",
+    date: "7 cze 2026, 20:00",
+    icon: "🏐",
+    platforms: [P.POLSAT],
+  },
+];
+
+export function filterByDiscipline(events, discipline) {
+  if (discipline === "all") return events;
+  return events.filter(e => e.discipline === discipline);
+}
