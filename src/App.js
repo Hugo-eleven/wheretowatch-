@@ -271,6 +271,7 @@ function App() {
                     item={item}
                     rank={i + 1}
                     isLast={i === 7}
+                    onOpen={openMovie}
                   />
                 ))}
               </div>
@@ -604,13 +605,19 @@ function App() {
                                 </span>
                                 <span style={{ fontSize: 13, fontWeight: 700 }}>{ep.title}</span>
                               </div>
-                              {ep.rating > 0 && (
+                              {ep.rating > 0 ? (
                                 <span style={{
                                   fontSize: 10, fontWeight: 700, color: t.w,
                                   background: t.wa, padding: "2px 7px", borderRadius: 6,
                                   flexShrink: 0, marginLeft: 8,
                                 }}>
                                   ⭐ {ep.rating}
+                                </span>
+                              ) : (
+                                <span style={{
+                                  fontSize: 10, color: t.tm, flexShrink: 0, marginLeft: 8,
+                                }}>
+                                  Brak oceny
                                 </span>
                               )}
                             </div>

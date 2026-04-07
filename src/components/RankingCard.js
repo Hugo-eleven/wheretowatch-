@@ -2,17 +2,24 @@ import { t } from "../theme";
 
 const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
-export function RankingCard({ item, rank, isLast }) {
+export function RankingCard({ item, rank, isLast, onOpen }) {
   const medal = MEDALS[rank];
 
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "10px 16px",
-      borderBottom: isLast ? "none" : "1px solid " + t.b,
-    }}>
+    <div
+      onClick={() => onOpen && onOpen(item)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 16px",
+        borderBottom: isLast ? "none" : "1px solid " + t.b,
+        cursor: onOpen ? "pointer" : "default",
+        transition: "background 0.12s",
+      }}
+      onMouseEnter={e => { if (onOpen) e.currentTarget.style.background = t.sh; }}
+      onMouseLeave={e => { e.currentTarget.style.background = ""; }}
+    >
       <div style={{
         minWidth: 34,
         textAlign: "center",
