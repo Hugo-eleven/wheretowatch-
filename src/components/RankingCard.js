@@ -2,45 +2,53 @@ import { t } from "../theme";
 
 const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
-export function RankingCard({ item, isLast }) {
-  const medal = MEDALS[item.rank];
+export function RankingCard({ item, rank, isLast }) {
+  const medal = MEDALS[rank];
 
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
-      gap: 14,
-      padding: "12px 16px",
+      gap: 12,
+      padding: "10px 16px",
       borderBottom: isLast ? "none" : "1px solid " + t.b,
     }}>
       <div style={{
-        minWidth: 36,
+        minWidth: 34,
         textAlign: "center",
-        fontSize: medal ? 22 : 14,
+        fontSize: medal ? 20 : 13,
         fontWeight: 800,
-        color: item.rank <= 3 ? t.a : t.tm,
+        color: rank <= 3 ? t.a : t.tm,
         lineHeight: 1,
       }}>
-        {medal || `#${item.rank}`}
+        {medal || `#${rank}`}
       </div>
+
+      {item.poster && (
+        <img
+          src={item.poster.replace("/w500", "/w92")}
+          alt=""
+          style={{ width: 32, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+        />
+      )}
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {item.title}
         </div>
-        <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>{item.year}</div>
+        <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{item.year}</div>
       </div>
-      <span style={{
-        padding: "4px 10px",
-        borderRadius: 8,
-        fontSize: 12,
-        fontWeight: 700,
-        background: t.wa,
-        color: t.w,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}>
-        ⭐ {item.score}
-      </span>
+
+      {item.imdb && (
+        <span style={{
+          padding: "3px 10px", borderRadius: 8,
+          fontSize: 11, fontWeight: 700,
+          background: t.wa, color: t.w,
+          whiteSpace: "nowrap", flexShrink: 0,
+        }}>
+          ⭐ {item.imdb}
+        </span>
+      )}
     </div>
   );
 }

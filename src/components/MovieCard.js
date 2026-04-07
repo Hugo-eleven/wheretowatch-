@@ -1,5 +1,27 @@
 import { t } from "../theme";
 
+function Poster({ src, size = 30, radius = 14, style = {} }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: radius,
+          display: "block",
+          ...style,
+        }}
+      />
+    );
+  }
+  return (
+    <span style={{ fontSize: size, lineHeight: 1 }}>🎬</span>
+  );
+}
+
 export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false }) {
   if (compact) {
     return (
@@ -9,42 +31,42 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
           minWidth: 130,
           background: t.s,
           borderRadius: 18,
-          padding: "14px 12px",
+          overflow: "hidden",
           cursor: "pointer",
           border: "1px solid " + t.b,
-          textAlign: "center",
           boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
           flexShrink: 0,
         }}
       >
         <div style={{
-          width: 54,
-          height: 54,
-          borderRadius: 16,
+          width: "100%",
+          height: 160,
           background: t.ad,
-          border: "1px solid " + t.ab,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          margin: "0 auto 10px",
-          fontSize: 28,
+          overflow: "hidden",
         }}>
-          {movie.poster}
+          <Poster src={movie.poster} size={40} radius={0} />
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginBottom: 4 }}>
-          {movie.title}
+        <div style={{ padding: "10px 12px 12px" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginBottom: 4 }}>
+            {movie.title}
+          </div>
+          <div style={{ fontSize: 10, color: t.tm, marginBottom: 6 }}>{movie.year}</div>
+          {movie.imdb && (
+            <span style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: t.w,
+              background: t.wa,
+              padding: "2px 8px",
+              borderRadius: 6,
+            }}>
+              ⭐ {movie.imdb}
+            </span>
+          )}
         </div>
-        <div style={{ fontSize: 10, color: t.tm, marginBottom: 6 }}>{movie.year}</div>
-        <span style={{
-          fontSize: 10,
-          fontWeight: 700,
-          color: t.w,
-          background: t.wa,
-          padding: "2px 8px",
-          borderRadius: 6,
-        }}>
-          ⭐ {movie.imdb}
-        </span>
       </div>
     );
   }
@@ -55,7 +77,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
       style={{
         background: t.s,
         borderRadius: 18,
-        padding: 16,
+        padding: 14,
         marginBottom: 10,
         cursor: "pointer",
         border: "1px solid " + t.b,
@@ -65,17 +87,16 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{
           width: 58,
-          height: 74,
+          height: 80,
           background: t.ad,
-          border: "1px solid " + t.ab,
-          borderRadius: 14,
+          borderRadius: 12,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 30,
+          overflow: "hidden",
           flexShrink: 0,
         }}>
-          {movie.poster}
+          <Poster src={movie.poster} size={28} radius={12} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -98,7 +119,6 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  transition: "all 0.15s",
                 }}
               >
                 {saved ? "❤️" : "🤍"}
@@ -106,29 +126,18 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
             )}
           </div>
           <div style={{ fontSize: 12, color: t.tm, margin: "4px 0 8px" }}>
-            {movie.year} · {movie.genre} · {movie.duration}
+            {[movie.year, movie.genre, movie.duration].filter(Boolean).join(" · ")}
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <span style={{
-              padding: "3px 9px",
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              background: t.wa,
-              color: t.w,
-            }}>
-              ⭐ {movie.imdb}
-            </span>
-            <span style={{
-              padding: "3px 9px",
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              background: t.da,
-              color: t.d,
-            }}>
-              🍅 {movie.rt}%
-            </span>
+            {movie.imdb && (
+              <span style={{
+                padding: "3px 9px", borderRadius: 8,
+                fontSize: 11, fontWeight: 700,
+                background: t.wa, color: t.w,
+              }}>
+                ⭐ {movie.imdb}
+              </span>
+            )}
           </div>
         </div>
       </div>
