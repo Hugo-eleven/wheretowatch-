@@ -1,7 +1,8 @@
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
 export const POSTER_URL = "https://image.tmdb.org/t/p/w500";
-export const LOGO_URL = "https://image.tmdb.org/t/p/w45";
+export const LOGO_URL = "https://image.tmdb.org/t/p/w92";
+export const PROFILE_URL = "https://image.tmdb.org/t/p/w185";
 
 const GENRE_MAP = {
   28: "Akcja", 12: "Przygodowy", 16: "Animacja", 35: "Komedia",
@@ -69,4 +70,19 @@ export function fetchWatchProviders(movieId) {
 /** Pełne szczegóły filmu (runtime, gatunki, itp.). */
 export function fetchMovieDetails(movieId) {
   return apiFetch(`/movie/${movieId}`).then(mapMovie);
+}
+
+/**
+ * Obsada filmu — zwraca pierwszych 5 aktorów.
+ * Każdy obiekt: { id, name, character, photo }
+ */
+export function fetchMovieCredits(movieId) {
+  return apiFetch(`/movie/${movieId}/credits`).then(data =>
+    (data.cast ?? []).slice(0, 5).map(a => ({
+      id: a.id,
+      name: a.name,
+      character: a.character,
+      photo: a.profile_path ? `${PROFILE_URL}${a.profile_path}` : null,
+    }))
+  );
 }

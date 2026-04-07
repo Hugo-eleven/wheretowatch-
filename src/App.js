@@ -3,7 +3,7 @@ import { t } from "./theme";
 import { SPORTS } from "./data";
 import {
   fetchPopular, fetchTopRated, searchMovies,
-  fetchMovieDetails, fetchWatchProviders,
+  fetchMovieDetails, fetchWatchProviders, fetchMovieCredits,
   LOGO_URL,
 } from "./services/tmdb";
 import { Navigation } from "./components/Navigation";
@@ -74,6 +74,7 @@ function App() {
   // Detail
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedProviders, setSelectedProviders] = useState(null);
+  const [selectedCredits, setSelectedCredits] = useState([]);
 
   // Stan ładowania
   const [homeLoading, setHomeLoading] = useState(true);
@@ -117,16 +118,19 @@ function App() {
     setPrevScreen(from || screen);
     setSelectedMovie(movie);
     setSelectedProviders(null);
+    setSelectedCredits([]);
     setDetailLoading(true);
     setScreen("detail");
 
     try {
-      const [details, providers] = await Promise.all([
+      const [details, providers, credits] = await Promise.all([
         fetchMovieDetails(movie.id),
         fetchWatchProviders(movie.id),
+        fetchMovieCredits(movie.id),
       ]);
       setSelectedMovie(details);
       setSelectedProviders(providers);
+      setSelectedCredits(credits);
     } catch (e) {
       // Zostaw to co mamy z listy
     } finally {
@@ -285,12 +289,11 @@ function App() {
   // ====== DETAIL ======
   if (screen === "detail" && selectedMovie) {
     const m = selectedMovie;
-    const flatrate = selectedProviders?.flatrate ?? [];
-    const rent = selectedProviders?.rent ?? [];
-    const allProviders = [
-      ...flatrate.map(p => ({ ...p, type: "Subskrypcja" })),
-      ...rent.map(p => ({ ...p, type: "Wypożyczenie" })),
-    ];
+    const providerGroups = [
+      { label: "Streaming", icon: "📺", items: selectedProviders?.flatrate ?? [] },
+      { label: "Wypożyczenie", icon: "🎬", items: selectedProviders?.rent ?? [] },
+      { label: "Zakup", icon: "🛒", items: selectedProviders?.buy ?? [] },
+    ].filter(g => g.items.length > 0);
 
     return (
       <div style={WRAP}>
@@ -363,48 +366,120 @@ function App() {
             <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis}</p>
           </div>
 
+          {/* Obsada */}
+          <div style={{ marginBottom: 20 }}>
+            <SectionHeader>Obsada</SectionHeader>
+            {detailLoading ? (
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} style={{
+                    minWidth: 70, textAlign: "center", flexShrink: 0,
+                  }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: "50%",
+                      background: t.sh, margin: "0 auto 8px",
+                    }} />
+                    <div style={{ height: 10, background: t.sh, borderRadius: 4, margin: "0 4px 4px" }} />
+                    <div style={{ height: 8, background: t.b, borderRadius: 4, margin: "0 10px" }} />
+                  </div>
+                ))}
+              </div>
+            ) : selectedCredits.length > 0 ? (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                {selectedCredits.map(actor => (
+                  <div key={actor.id} style={{ minWidth: 72, textAlign: "center", flexShrink: 0 }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: "50%",
+                      overflow: "hidden", margin: "0 auto 8px",
+                      background: t.sh,
+                      border: "2px solid " + t.b,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {actor.photo ? (
+                        <img
+                          src={actor.photo}
+                          alt={actor.name}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 26 }}>👤</span>
+                      )}
+                    </div>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, lineHeight: 1.3,
+                      marginBottom: 2, overflow: "hidden",
+                      display: "-webkit-box", WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                    }}>
+                      {actor.name}
+                    </div>
+                    <div style={{
+                      fontSize: 10, color: t.tm, lineHeight: 1.2,
+                      overflow: "hidden", whiteSpace: "nowrap",
+                      textOverflow: "ellipsis",
+                    }}>
+                      {actor.character}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Gdzie obejrzeć */}
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>Gdzie obejrzeć w Polsce</SectionHeader>
             {detailLoading ? (
               <div style={{ padding: "20px 0", color: t.tm, fontSize: 13, textAlign: "center" }}>
                 ⏳ Sprawdzam dostępność...
               </div>
-            ) : allProviders.length > 0 ? (
-              allProviders.map(p => (
-                <div key={p.provider_id + p.type} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  background: t.s, border: "1.5px solid " + t.b,
-                  borderRadius: 14, padding: "12px 16px", marginBottom: 8,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-                }}>
+            ) : providerGroups.length > 0 ? (
+              providerGroups.map(group => (
+                <div key={group.label} style={{ marginBottom: 16 }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: 12, overflow: "hidden",
-                    background: t.sh, flexShrink: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 11, fontWeight: 700, color: t.tm,
+                    textTransform: "uppercase", letterSpacing: 1,
+                    marginBottom: 8, display: "flex", alignItems: "center", gap: 6,
                   }}>
-                    {p.logo_path ? (
-                      <img
-                        src={`${LOGO_URL}${p.logo_path}`}
-                        alt={p.provider_name}
-                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: 18, fontWeight: 800, color: t.a }}>
-                        {p.provider_name.charAt(0)}
+                    <span>{group.icon}</span> {group.label}
+                  </div>
+                  {group.items.map(p => (
+                    <div key={p.provider_id} style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      background: t.s, border: "1.5px solid " + t.b,
+                      borderRadius: 14, padding: "12px 16px", marginBottom: 8,
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+                    }}>
+                      <div style={{
+                        width: 48, height: 48, borderRadius: 12, overflow: "hidden",
+                        background: t.sh, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {p.logo_path ? (
+                          <img
+                            src={`${LOGO_URL}${p.logo_path}`}
+                            alt={p.provider_name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 18, fontWeight: 800, color: t.a }}>
+                            {p.provider_name.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{p.provider_name}</div>
+                        <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{group.label}</div>
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, color: t.a,
+                        padding: "7px 16px", borderRadius: 10,
+                        background: t.ad, border: "1px solid " + t.ab,
+                      }}>
+                        {group.label === "Streaming" ? "Oglądaj" : group.label === "Wypożyczenie" ? "Wypożycz" : "Kup"}
                       </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{p.provider_name}</div>
-                    <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{p.type}</div>
-                  </div>
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, color: t.a,
-                    padding: "7px 16px", borderRadius: 10,
-                    background: t.ad, border: "1px solid " + t.ab,
-                  }}>
-                    Oglądaj
-                  </span>
+                    </div>
+                  ))}
                 </div>
               ))
             ) : (
@@ -414,7 +489,7 @@ function App() {
                 textAlign: "center", color: t.tm, fontSize: 13,
               }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🌍</div>
-                Brak dostępnych platform streamingowych w Polsce
+                Brak dostępnych platform w Polsce
               </div>
             )}
           </div>
