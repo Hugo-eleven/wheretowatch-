@@ -3,7 +3,7 @@ import { t } from "./theme";
 import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sports";
 import {
   fetchPopular, fetchTopRated, searchMulti,
-  fetchDetails, fetchProviders, fetchCredits, fetchSimilar,
+  fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchEpisodes,
   LOGO_URL,
 } from "./services/tmdb";
 import { Navigation } from "./components/Navigation";
@@ -83,6 +83,15 @@ function App() {
   // Filtr wyszukiwarki
   const [searchFilter, setSearchFilter] = useState("all");
 
+  // Rankingi
+  const [rankingTab, setRankingTab] = useState("top_rated");
+
+  // Sezony / odcinki (TV)
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [episodes, setEpisodes] = useState([]);
+  const [episodeSort, setEpisodeSort] = useState("number");
+  const [episodesLoading, setEpisodesLoading] = useState(false);
+
   // Stan ładowania
   const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState(null);
@@ -127,6 +136,8 @@ function App() {
     setSelectedProviders(null);
     setSelectedCredits([]);
     setSimilarMovies([]);
+    setSelectedSeason(null);
+    setEpisodes([]);
     setDetailLoading(true);
     setScreen("detail");
 
@@ -153,6 +164,25 @@ function App() {
     setSavedMovies(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  }
+
+  async function openSeason(seasonNumber) {
+    if (selectedSeason === seasonNumber) {
+      setSelectedSeason(null);
+      setEpisodes([]);
+      return;
+    }
+    setSelectedSeason(seasonNumber);
+    setEpisodes([]);
+    setEpisodesLoading(true);
+    try {
+      const eps = await fetchEpisodes(selectedMovie.id, seasonNumber);
+      setEpisodes(eps);
+    } catch (e) {
+      setEpisodes([]);
+    } finally {
+      setEpisodesLoading(false);
+    }
   }
 
   const isSaved = id => savedMovies.includes(id);
@@ -198,15 +228,34 @@ function App() {
               </div>
             </div>
 
-            {/* Top rated */}
+            {/* Ranking z tabami */}
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
-              <SectionHeader>Najwyżej oceniane</SectionHeader>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <SectionHeader>{rankingTab === "top_rated" ? "Najwyżej oceniane" : "Popularne teraz"}</SectionHeader>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[{ id: "top_rated", label: "TMDB Top" }, { id: "popular", label: "Popularne" }].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setRankingTab(tab.id)}
+                      style={{
+                        padding: "5px 12px", borderRadius: 16, cursor: "pointer",
+                        border: "1.5px solid " + (rankingTab === tab.id ? t.a : t.b),
+                        background: rankingTab === tab.id ? t.ad : t.s,
+                        color: rankingTab === tab.id ? t.a : t.tm,
+                        fontSize: 11, fontWeight: 700,
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div style={{
                 background: t.s, borderRadius: 18,
                 border: "1px solid " + t.b, overflow: "hidden",
                 boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
               }}>
-                {topRatedMovies.slice(0, 8).map((item, i) => (
+                {(rankingTab === "top_rated" ? topRatedMovies : popularMovies).slice(0, 8).map((item, i) => (
                   <RankingCard
                     key={item.id}
                     item={item}
@@ -442,6 +491,120 @@ function App() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Lista sezonów */}
+          {m.mediaType === "tv" && m.seasonsList?.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Sezony</SectionHeader>
+              {m.seasonsList.map(season => {
+                const isOpen = selectedSeason === season.number;
+                const sortedEps = episodeSort === "rating"
+                  ? [...episodes].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+                  : [...episodes].sort((a, b) => a.number - b.number);
+                return (
+                  <div key={season.number}>
+                    <div
+                      onClick={() => openSeason(season.number)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        background: isOpen ? t.ad : t.s,
+                        border: "1.5px solid " + (isOpen ? t.ab : t.b),
+                        borderRadius: 14, padding: "11px 14px", marginBottom: 8,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {season.poster ? (
+                        <img
+                          src={season.poster.replace("/w500", "/w92")}
+                          alt=""
+                          style={{ width: 32, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: 32, height: 44, borderRadius: 6, flexShrink: 0,
+                          background: t.sh, display: "flex", alignItems: "center",
+                          justifyContent: "center", fontSize: 16,
+                        }}>📺</div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: isOpen ? t.a : t.tx }}>
+                          {season.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>
+                          {[season.airDate, season.episodeCount ? `${season.episodeCount} odcinków` : null].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, color: t.tm }}>{isOpen ? "▲" : "▼"}</span>
+                    </div>
+
+                    {isOpen && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                          {[{ id: "number", label: "Kolejność" }, { id: "rating", label: "Ocena ↓" }].map(mode => (
+                            <button
+                              key={mode.id}
+                              onClick={() => setEpisodeSort(mode.id)}
+                              style={{
+                                padding: "5px 12px", borderRadius: 16, cursor: "pointer",
+                                border: "1.5px solid " + (episodeSort === mode.id ? t.a : t.b),
+                                background: episodeSort === mode.id ? t.ad : t.s,
+                                color: episodeSort === mode.id ? t.a : t.tm,
+                                fontSize: 11, fontWeight: 700,
+                              }}
+                            >
+                              {mode.label}
+                            </button>
+                          ))}
+                        </div>
+                        {episodesLoading ? (
+                          <div style={{ textAlign: "center", padding: "20px 0", color: t.tm, fontSize: 13 }}>
+                            ⏳ Ładowanie odcinków...
+                          </div>
+                        ) : sortedEps.map(ep => (
+                          <div key={ep.id} style={{
+                            background: t.sh, border: "1px solid " + t.b,
+                            borderRadius: 12, padding: "11px 14px", marginBottom: 8,
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 3 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ fontSize: 10, color: t.a, fontWeight: 700, marginRight: 6 }}>
+                                  E{String(ep.number).padStart(2, "0")}
+                                </span>
+                                <span style={{ fontSize: 13, fontWeight: 700 }}>{ep.title}</span>
+                              </div>
+                              {ep.rating > 0 && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, color: t.w,
+                                  background: t.wa, padding: "2px 7px", borderRadius: 6,
+                                  flexShrink: 0, marginLeft: 8,
+                                }}>
+                                  ⭐ {ep.rating}
+                                </span>
+                              )}
+                            </div>
+                            {ep.airDate && (
+                              <div style={{ fontSize: 10, color: t.tm, marginBottom: ep.overview ? 5 : 0 }}>
+                                {ep.airDate}
+                              </div>
+                            )}
+                            {ep.overview && (
+                              <div style={{
+                                fontSize: 11, color: t.tm, lineHeight: 1.5,
+                                overflow: "hidden", display: "-webkit-box",
+                                WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                              }}>
+                                {ep.overview}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

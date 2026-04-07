@@ -58,6 +58,15 @@ function mapTV(m) {
     synopsis: m.overview || "Brak opisu.",
     platforms: [],
     mediaType: "tv",
+    seasonsList: (m.seasons ?? [])
+      .filter(s => s.season_number > 0)
+      .map(s => ({
+        number: s.season_number,
+        name: s.name,
+        episodeCount: s.episode_count,
+        airDate: s.air_date?.slice(0, 4) ?? null,
+        poster: s.poster_path ? `${POSTER_URL}${s.poster_path}` : null,
+      })),
   };
 }
 
@@ -129,6 +138,21 @@ export function fetchCredits(id, mediaType = "movie") {
       name: a.name,
       character: a.character,
       photo: a.profile_path ? `${PROFILE_URL}${a.profile_path}` : null,
+    }))
+  );
+}
+
+/** Odcinki danego sezonu serialu. */
+export function fetchEpisodes(id, seasonNumber) {
+  return apiFetch(`/tv/${id}/season/${seasonNumber}`).then(d =>
+    (d.episodes ?? []).map(e => ({
+      id: e.id,
+      number: e.episode_number,
+      title: e.name,
+      overview: e.overview || null,
+      airDate: e.air_date ?? null,
+      rating: e.vote_average != null ? Number(e.vote_average.toFixed(1)) : null,
+      still: e.still_path ? `https://image.tmdb.org/t/p/w300${e.still_path}` : null,
     }))
   );
 }
