@@ -4,8 +4,9 @@ import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sport
 import {
   fetchPopular, fetchTopRated, searchMulti,
   fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchEpisodes,
-  LOGO_URL,
+  fetchExternalIds, LOGO_URL,
 } from "./services/tmdb";
+import { fetchOMDbRatings } from "./services/omdb";
 import { Navigation } from "./components/Navigation";
 import { MovieCard } from "./components/MovieCard";
 import { SportCard } from "./components/SportCard";
@@ -76,6 +77,7 @@ function App() {
   const [selectedProviders, setSelectedProviders] = useState(null);
   const [selectedCredits, setSelectedCredits] = useState([]);
   const [similarMovies, setSimilarMovies] = useState([]);
+  const [ratings, setRatings] = useState(null);
 
   // Sport
   const [sportsDiscipline, setSportsDiscipline] = useState("all");
@@ -136,6 +138,7 @@ function App() {
     setSelectedProviders(null);
     setSelectedCredits([]);
     setSimilarMovies([]);
+    setRatings(null);
     setSelectedSeason(null);
     setEpisodes([]);
     setDetailLoading(true);
@@ -153,6 +156,13 @@ function App() {
       setSelectedProviders(providers);
       setSelectedCredits(credits);
       setSimilarMovies(similar);
+
+      // OMDb: najpierw pobierz IMDb ID, potem oceny
+      const imdbId = await fetchExternalIds(movie.id, mediaType);
+      if (imdbId) {
+        const omdb = await fetchOMDbRatings(imdbId);
+        setRatings(omdb);
+      }
     } catch (e) {
       // Zostaw to co mamy z listy
     } finally {
@@ -433,14 +443,34 @@ function App() {
                 </div>
               </div>
             )}
-            {m.imdb && (
-              <div style={{ padding: "14px 20px", display: "flex", gap: 8 }}>
-                <span style={{
-                  padding: "5px 14px", borderRadius: 10, fontSize: 13,
-                  fontWeight: 700, background: t.wa, color: t.w,
-                }}>
-                  ⭐ {m.imdb} TMDB
-                </span>
+            {(m.imdb || ratings?.imdb || ratings?.rottenTomatoes) && (
+              <div style={{ padding: "14px 20px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {m.imdb && (
+                  <span style={{
+                    padding: "5px 12px", borderRadius: 10, fontSize: 12,
+                    fontWeight: 700, background: "rgba(0,229,160,0.12)", color: t.a,
+                    border: "1px solid rgba(0,229,160,0.25)",
+                  }}>
+                    ⭐ {m.imdb} TMDB
+                  </span>
+                )}
+                {ratings?.imdb && (
+                  <span style={{
+                    padding: "5px 12px", borderRadius: 10, fontSize: 12,
+                    fontWeight: 700, background: t.wa, color: t.w,
+                  }}>
+                    ⭐ {ratings.imdb} IMDb
+                  </span>
+                )}
+                {ratings?.rottenTomatoes && (
+                  <span style={{
+                    padding: "5px 12px", borderRadius: 10, fontSize: 12,
+                    fontWeight: 700, background: "rgba(255,77,106,0.12)", color: t.d,
+                    border: "1px solid rgba(255,77,106,0.25)",
+                  }}>
+                    🍅 {ratings.rottenTomatoes}
+                  </span>
+                )}
               </div>
             )}
           </div>

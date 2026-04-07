@@ -142,6 +142,12 @@ export function fetchCredits(id, mediaType = "movie") {
   );
 }
 
+/** IMDb ID i inne zewnętrzne identyfikatory. */
+export function fetchExternalIds(id, mediaType = "movie") {
+  const path = mediaType === "tv" ? `/tv/${id}/external_ids` : `/movie/${id}/external_ids`;
+  return apiFetch(path).then(d => d.imdb_id ?? null);
+}
+
 /** Odcinki danego sezonu serialu. */
 export function fetchEpisodes(id, seasonNumber) {
   return apiFetch(`/tv/${id}/season/${seasonNumber}`).then(d =>
