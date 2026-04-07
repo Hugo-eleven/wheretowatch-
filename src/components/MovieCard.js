@@ -6,6 +6,7 @@ function Poster({ src, size = 30, radius = 14, style = {} }) {
       <img
         src={src}
         alt=""
+        loading="lazy"
         style={{
           width: "100%",
           height: "100%",

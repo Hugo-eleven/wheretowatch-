@@ -249,7 +249,7 @@ function App() {
         .then(setSearchResults)
         .catch(() => setSearchResults([]))
         .finally(() => setSearchLoading(false));
-    }, 400);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -616,6 +616,7 @@ function App() {
                 <img
                   src={m.poster}
                   alt={m.title}
+                  loading="lazy"
                   style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }}
                 />
                 <div style={{
@@ -764,6 +765,7 @@ function App() {
                         <img
                           src={season.poster.replace("/w500", "/w92")}
                           alt=""
+                          loading="lazy"
                           style={{ width: 32, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
                         />
                       ) : (
@@ -890,6 +892,7 @@ function App() {
                         <img
                           src={actor.photo}
                           alt={actor.name}
+                          loading="lazy"
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       ) : (
@@ -963,6 +966,7 @@ function App() {
                           <img
                             src={`${LOGO_URL}${p.logo_path}`}
                             alt={p.provider_name}
+                            loading="lazy"
                             style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
                           />
                         ) : (

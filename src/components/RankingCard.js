@@ -35,6 +35,7 @@ export function RankingCard({ item, rank, isLast, onOpen }) {
         <img
           src={item.poster.replace("/w500", "/w92")}
           alt=""
+          loading="lazy"
           style={{ width: 32, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
         />
       )}
