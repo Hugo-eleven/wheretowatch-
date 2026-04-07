@@ -4,7 +4,7 @@ import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sport
 import {
   fetchPopular, fetchTopRated, searchMulti,
   fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchEpisodes,
-  fetchExternalIds, LOGO_URL,
+  fetchExternalIds, fetchVideos, LOGO_URL,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
 import { Navigation } from "./components/Navigation";
@@ -70,7 +70,14 @@ function App() {
   const [popularMovies, setPopularMovies] = useState([]);
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [savedMovies, setSavedMovies] = useState([]);
+  const [savedMovies, setSavedMovies] = useState(() => {
+    try {
+      const stored = localStorage.getItem("wtw_saved");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Detail
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -78,6 +85,7 @@ function App() {
   const [selectedCredits, setSelectedCredits] = useState([]);
   const [similarMovies, setSimilarMovies] = useState([]);
   const [ratings, setRatings] = useState(null);
+  const [trailerKey, setTrailerKey] = useState(null);
 
   // Sport
   const [sportsDiscipline, setSportsDiscipline] = useState("all");
@@ -100,6 +108,11 @@ function App() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Zapisuj ulubione do localStorage przy każdej zmianie
+  useEffect(() => {
+    localStorage.setItem("wtw_saved", JSON.stringify(savedMovies));
+  }, [savedMovies]);
 
   // Ładuj popularne i top rated przy starcie
   useEffect(() => {
@@ -139,6 +152,7 @@ function App() {
     setSelectedCredits([]);
     setSimilarMovies([]);
     setRatings(null);
+    setTrailerKey(null);
     setSelectedSeason(null);
     setEpisodes([]);
     setDetailLoading(true);
@@ -146,16 +160,18 @@ function App() {
 
     try {
       const mediaType = movie.mediaType ?? "movie";
-      const [details, providers, credits, similar] = await Promise.all([
+      const [details, providers, credits, similar, videoKey] = await Promise.all([
         fetchDetails(movie.id, mediaType),
         fetchProviders(movie.id, mediaType),
         fetchCredits(movie.id, mediaType),
         fetchSimilar(movie.id, mediaType),
+        fetchVideos(movie.id, mediaType),
       ]);
       setSelectedMovie(details);
       setSelectedProviders(providers);
       setSelectedCredits(credits);
       setSimilarMovies(similar);
+      setTrailerKey(videoKey);
 
       // OMDb: najpierw pobierz IMDb ID, potem oceny
       const imdbId = await fetchExternalIds(movie.id, mediaType);
@@ -478,6 +494,26 @@ function App() {
         </div>
 
         <div style={{ padding: "0 20px" }}>
+          {/* Trailer YouTube */}
+          {trailerKey && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Trailer</SectionHeader>
+              <div style={{
+                position: "relative", paddingBottom: "56.25%", height: 0,
+                borderRadius: 16, overflow: "hidden",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+              }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${trailerKey}`}
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Trailer"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Szczegóły serialu */}
           {m.mediaType === "tv" && (m.seasons || m.episodes) && (
             <div style={{ marginBottom: 20 }}>
@@ -755,13 +791,20 @@ function App() {
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{p.provider_name}</div>
                         <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{group.label}</div>
                       </div>
-                      <span style={{
-                        fontSize: 12, fontWeight: 700, color: t.a,
-                        padding: "7px 16px", borderRadius: 10,
-                        background: t.ad, border: "1px solid " + t.ab,
-                      }}>
+                      <a
+                        href={selectedProviders?.link ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => { if (!selectedProviders?.link) e.preventDefault(); }}
+                        style={{
+                          fontSize: 12, fontWeight: 700, color: t.a,
+                          padding: "7px 16px", borderRadius: 10,
+                          background: t.ad, border: "1px solid " + t.ab,
+                          textDecoration: "none", whiteSpace: "nowrap",
+                        }}
+                      >
                         {group.label === "Streaming" ? "Oglądaj" : group.label === "Wypożyczenie" ? "Wypożycz" : "Kup"}
-                      </span>
+                      </a>
                     </div>
                   ))}
                 </div>

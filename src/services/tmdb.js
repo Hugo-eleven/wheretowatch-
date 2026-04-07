@@ -148,6 +148,17 @@ export function fetchExternalIds(id, mediaType = "movie") {
   return apiFetch(path).then(d => d.imdb_id ?? null);
 }
 
+/** Pierwszy trailer/teaser YouTube dla filmu lub serialu. Zwraca klucz YT lub null. */
+export function fetchVideos(id, mediaType = "movie") {
+  const path = mediaType === "tv" ? `/tv/${id}/videos` : `/movie/${id}/videos`;
+  return apiFetch(path).then(d => {
+    const pick = (d.results ?? []).find(
+      v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
+    );
+    return pick?.key ?? null;
+  });
+}
+
 /** Odcinki danego sezonu serialu. */
 export function fetchEpisodes(id, seasonNumber) {
   return apiFetch(`/tv/${id}/season/${seasonNumber}`).then(d =>
