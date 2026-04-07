@@ -148,17 +148,42 @@ export function fetchExternalIds(id, mediaType = "movie") {
   return apiFetch(path).then(d => d.imdb_id ?? null);
 }
 
-/** Pierwszy dostępny film YouTube: Trailer → Teaser → cokolwiek. Zwraca klucz YT lub null. */
+/** Pierwszy dostępny trailer YouTube: Trailer → Teaser → cokolwiek.
+ *  Najpierw próbuje pl-PL, potem en-US (większość trailerów jest po angielsku). */
 export function fetchVideos(id, mediaType = "movie") {
   const path = mediaType === "tv" ? `/tv/${id}/videos` : `/movie/${id}/videos`;
+
+  function pickYT(results) {
+    const yt = (results ?? []).filter(v => v.site === "YouTube");
+    return yt.find(v => v.type === "Trailer") ||
+           yt.find(v => v.type === "Teaser") ||
+           yt[0] ||
+           null;
+  }
+
+  // Krok 1: pl-PL
   return apiFetch(path).then(d => {
-    const yt = (d.results ?? []).filter(v => v.site === "YouTube");
-    const pick =
-      yt.find(v => v.type === "Trailer") ||
-      yt.find(v => v.type === "Teaser") ||
-      yt[0] ||
-      null;
-    return pick?.key ?? null;
+    const plVideos = d.results ?? [];
+    console.log(`[Videos] ${path} pl-PL: ${plVideos.length} wyników`);
+    const pick = pickYT(plVideos);
+    if (pick) {
+      console.log(`[Videos] Wybrany (pl): ${pick.type} "${pick.name}" key=${pick.key}`);
+      return pick.key;
+    }
+    // Krok 2: en-US (trailery są głównie po angielsku)
+    return fetch(`${BASE_URL}${path}?api_key=${API_KEY}&language=en-US`)
+      .then(r => r.ok ? r.json() : { results: [] })
+      .then(d2 => {
+        const enVideos = d2.results ?? [];
+        console.log(`[Videos] ${path} en-US: ${enVideos.length} wyników`);
+        const pick2 = pickYT(enVideos);
+        if (pick2) {
+          console.log(`[Videos] Wybrany (en): ${pick2.type} "${pick2.name}" key=${pick2.key}`);
+          return pick2.key;
+        }
+        console.log(`[Videos] Brak trailera dla ${path}`);
+        return null;
+      });
   });
 }
 

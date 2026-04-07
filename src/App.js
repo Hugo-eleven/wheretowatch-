@@ -332,6 +332,7 @@ function App() {
       setSelectedProviders(providers);
       setSelectedCredits(credits);
       setSimilarMovies(similar);
+      console.log(`[App] trailerKey =`, videoKey);
       setTrailerKey(videoKey);
 
       const imdbId = await fetchExternalIds(movie.id, mediaType);
