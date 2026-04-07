@@ -80,6 +80,9 @@ function App() {
   // Sport
   const [sportsDiscipline, setSportsDiscipline] = useState("all");
 
+  // Filtr wyszukiwarki
+  const [searchFilter, setSearchFilter] = useState("all");
+
   // Stan ładowania
   const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState(null);
@@ -217,7 +220,7 @@ function App() {
             {/* Sport */}
             <div style={{ padding: "0 20px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <SectionHeader>Nadchodzące</SectionHeader>
+                <SectionHeader>Nadchodzące transmisje</SectionHeader>
                 <button
                   onClick={() => setScreen("sports")}
                   style={{ background: "none", border: "none", color: t.a, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
@@ -237,10 +240,19 @@ function App() {
 
   // ====== SEARCH ======
   if (screen === "search") {
+    const SEARCH_FILTERS = [
+      { id: "all", label: "Wszystko" },
+      { id: "movie", label: "🎬 Filmy" },
+      { id: "tv", label: "📺 Seriale" },
+    ];
+    const visibleResults = searchFilter === "all"
+      ? searchResults
+      : searchResults.filter(m => m.mediaType === searchFilter);
+
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px" }}><Logo /></div>
-        <div style={{ padding: "8px 20px 20px" }}>
+        <div style={{ padding: "8px 20px 12px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
           <div style={{ position: "relative" }}>
             <span style={{
@@ -261,13 +273,30 @@ function App() {
               }}
             />
           </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            {SEARCH_FILTERS.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setSearchFilter(f.id)}
+                style={{
+                  padding: "7px 16px", borderRadius: 20, cursor: "pointer",
+                  border: "1.5px solid " + (searchFilter === f.id ? t.a : t.b),
+                  background: searchFilter === f.id ? t.ad : t.s,
+                  color: searchFilter === f.id ? t.a : t.tm,
+                  fontSize: 12, fontWeight: 700,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{ padding: "0 20px" }}>
           {searchLoading ? (
             <Spinner />
-          ) : searchResults.length > 0 ? (
-            searchResults.map(m => (
+          ) : visibleResults.length > 0 ? (
+            visibleResults.map(m => (
               <MovieCard
                 key={m.id} movie={m}
                 onOpen={openMovie}
@@ -369,6 +398,53 @@ function App() {
         </div>
 
         <div style={{ padding: "0 20px" }}>
+          {/* Szczegóły serialu */}
+          {m.mediaType === "tv" && (m.seasons || m.episodes) && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Szczegóły serialu</SectionHeader>
+              <div style={{ display: "flex", gap: 10 }}>
+                {m.seasons != null && (
+                  <div style={{
+                    flex: 1, background: t.s, borderRadius: 14,
+                    border: "1px solid " + t.b, padding: "14px 12px", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: t.a }}>{m.seasons}</div>
+                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>
+                      {m.seasons === 1 ? "Sezon" : m.seasons < 5 ? "Sezony" : "Sezonów"}
+                    </div>
+                  </div>
+                )}
+                {m.episodes != null && (
+                  <div style={{
+                    flex: 1, background: t.s, borderRadius: 14,
+                    border: "1px solid " + t.b, padding: "14px 12px", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: t.a }}>{m.episodes}</div>
+                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>Odcinków</div>
+                  </div>
+                )}
+                {m.status != null && (
+                  <div style={{
+                    flex: 1, background: t.s, borderRadius: 14,
+                    border: "1px solid " + t.b, padding: "14px 12px", textAlign: "center",
+                  }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 800,
+                      color: m.status === "Ended" ? t.tm : t.a,
+                      lineHeight: 1.4,
+                    }}>
+                      {m.status === "Ended" ? "Zakończony"
+                        : m.status === "Returning Series" ? "W toku"
+                        : m.status === "Canceled" ? "Anulowany"
+                        : m.status}
+                    </div>
+                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>Status</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>Opis</SectionHeader>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis}</p>
@@ -507,7 +583,7 @@ function App() {
             <div style={{ marginBottom: 20 }}>
               <SectionHeader>Podobne filmy</SectionHeader>
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                {similarMovies.map(s => (
+                {similarMovies.slice(0, 5).map(s => (
                   <MovieCard key={s.id} movie={s} onOpen={openMovie} compact />
                 ))}
               </div>
