@@ -151,6 +151,15 @@ function App() {
       return [];
     }
   });
+  // Mapuje id → mediaType żeby wiedzieć jak fetch'ować szczegóły zapisanego tytułu
+  const [savedMediaTypes, setSavedMediaTypes] = useState(() => {
+    try {
+      const stored = localStorage.getItem("wtw_saved_types");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Detail
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -188,6 +197,10 @@ function App() {
     catch { return true; }
   });
 
+  // Cache szczegółów filmów spoza popularMovies/searchResults
+  const [savedMoviesCache, setSavedMoviesCache] = useState({});
+  const [savedCacheLoading, setSavedCacheLoading] = useState(false);
+
   // Porównywarka subskrypcji
   const [savedProvidersMap, setSavedProvidersMap] = useState({});
   const [savedProvidersLoading, setSavedProvidersLoading] = useState(false);
@@ -204,6 +217,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem("wtw_saved", JSON.stringify(savedMovies));
   }, [savedMovies]);
+
+  useEffect(() => {
+    localStorage.setItem("wtw_saved_types", JSON.stringify(savedMediaTypes));
+  }, [savedMediaTypes]);
 
   // Ładuj popularne i top rated przy starcie
   useEffect(() => {
@@ -236,10 +253,36 @@ function App() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Pobieranie szczegółów filmów zapisanych w poprzednich sesjach (nie ma ich w popularMovies/searchResults)
+  useEffect(() => {
+    if (screen !== "saved") return;
+    const loadedIds = new Set([...popularMovies, ...searchResults].map(m => m.id));
+    const missingIds = savedMovies.filter(id => !loadedIds.has(id) && !(id in savedMoviesCache));
+    if (missingIds.length === 0) return;
+
+    setSavedCacheLoading(true);
+    Promise.all(
+      missingIds.map(id =>
+        fetchDetails(id, savedMediaTypes[id] ?? "movie")
+          .catch(() => null)
+          .then(details => ({ id, details }))
+      )
+    ).then(results => {
+      setSavedMoviesCache(prev => {
+        const next = { ...prev };
+        results.forEach(({ id, details }) => { if (details) next[id] = details; });
+        return next;
+      });
+      setSavedCacheLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, savedMovies.length, popularMovies.length, searchResults.length]);
+
   // Pobieranie dostawców dla zapisanych filmów (porównywarka subskrypcji)
   useEffect(() => {
     if (screen !== "saved") return;
-    const currentSavedList = [...popularMovies, ...searchResults].filter(
+    const allKnown = [...popularMovies, ...searchResults, ...Object.values(savedMoviesCache)];
+    const currentSavedList = allKnown.filter(
       (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
     );
     const needProviders = currentSavedList.filter(m => !(m.id in savedProvidersMap));
@@ -261,7 +304,7 @@ function App() {
       setSavedProvidersLoading(false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, savedMovies.length, popularMovies.length]);
+  }, [screen, savedMovies.length, popularMovies.length, searchResults.length, Object.keys(savedMoviesCache).length]);
 
   async function openMovie(movie, from) {
     setPrevScreen(from || screen);
@@ -303,10 +346,12 @@ function App() {
     }
   }
 
-  function toggleSaved(id) {
-    setSavedMovies(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+  function toggleSaved(id, mediaType = "movie") {
+    setSavedMovies(prev => {
+      const removing = prev.includes(id);
+      if (!removing) setSavedMediaTypes(mt => ({ ...mt, [id]: mediaType }));
+      return removing ? prev.filter(x => x !== id) : [...prev, id];
+    });
   }
 
   async function openSeason(seasonNumber) {
@@ -973,7 +1018,7 @@ function App() {
 
           <div style={{ marginBottom: 20 }}>
             <button
-              onClick={() => toggleSaved(m.id)}
+              onClick={() => toggleSaved(m.id, m.mediaType ?? "movie")}
               style={{
                 width: "100%", padding: "16px", borderRadius: 16,
                 border: "2px solid " + (isSaved(m.id) ? t.a : t.b),
@@ -986,6 +1031,7 @@ function App() {
             >
               {isSaved(m.id) ? "❤️ Zapisano na liście" : "🤍 Dodaj do mojej listy"}
             </button>
+
           </div>
         </div>
 
@@ -1043,7 +1089,8 @@ function App() {
   }
 
   // ====== SAVED ======
-  const savedList = [...popularMovies, ...searchResults].filter(
+  // Łączy popularne, wyniki wyszukiwania i cache filmów z poprzednich sesji
+  const savedList = [...popularMovies, ...searchResults, ...Object.values(savedMoviesCache)].filter(
     (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
   );
 
@@ -1084,7 +1131,7 @@ function App() {
       </div>
 
       {/* Porównywarka subskrypcji */}
-      {savedList.length > 0 && (
+      {(savedList.length > 0 || (savedCacheLoading && savedMovies.length > 0)) && (
         <div style={{ padding: "0 20px", marginBottom: 24 }}>
           <SectionHeader>Najlepsza subskrypcja dla Ciebie</SectionHeader>
           {savedProvidersLoading && !hasProviderData ? (
@@ -1153,7 +1200,9 @@ function App() {
       )}
 
       <div style={{ padding: "0 20px" }}>
-        {savedList.length > 0 ? savedList.map(m => (
+        {savedCacheLoading && savedMovies.length > 0 && savedList.length === 0 ? (
+          [...Array(Math.min(savedMovies.length, 3))].map((_, i) => <SkeletonCard key={i} />)
+        ) : savedList.length > 0 ? savedList.map(m => (
           <MovieCard
             key={m.id} movie={m}
             onOpen={openMovie}

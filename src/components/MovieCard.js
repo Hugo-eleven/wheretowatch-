@@ -108,7 +108,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
             </div>
             {onToggleSaved && (
               <button
-                onClick={e => { e.stopPropagation(); onToggleSaved(movie.id); }}
+                onClick={e => { e.stopPropagation(); onToggleSaved(movie.id, movie.mediaType); }}
                 style={{
                   background: saved ? t.ad : "transparent",
                   border: "1.5px solid " + (saved ? t.ab : t.b),

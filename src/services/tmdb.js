@@ -148,13 +148,16 @@ export function fetchExternalIds(id, mediaType = "movie") {
   return apiFetch(path).then(d => d.imdb_id ?? null);
 }
 
-/** Pierwszy trailer/teaser YouTube dla filmu lub serialu. Zwraca klucz YT lub null. */
+/** Pierwszy dostępny film YouTube: Trailer → Teaser → cokolwiek. Zwraca klucz YT lub null. */
 export function fetchVideos(id, mediaType = "movie") {
   const path = mediaType === "tv" ? `/tv/${id}/videos` : `/movie/${id}/videos`;
   return apiFetch(path).then(d => {
-    const pick = (d.results ?? []).find(
-      v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
-    );
+    const yt = (d.results ?? []).filter(v => v.site === "YouTube");
+    const pick =
+      yt.find(v => v.type === "Trailer") ||
+      yt.find(v => v.type === "Teaser") ||
+      yt[0] ||
+      null;
     return pick?.key ?? null;
   });
 }
