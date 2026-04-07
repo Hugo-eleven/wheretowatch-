@@ -1,5 +1,46 @@
+/* ── CSS variables (dark default, light override) ── */
+:root {
+  --t-bg: #0B0F1A;
+  --t-s: #141929;
+  --t-sh: #1C2238;
+  --t-a: #00E5A0;
+  --t-ad: rgba(0,229,160,0.12);
+  --t-ab: rgba(0,229,160,0.25);
+  --t-tx: #E8ECF4;
+  --t-tm: #6B7394;
+  --t-b: #1E2540;
+  --t-w: #FFB547;
+  --t-wa: rgba(255,181,71,0.15);
+  --t-d: #FF4D6A;
+  --t-da: rgba(255,77,106,0.15);
+  --t-nav-bg: rgba(11,15,26,0.97);
+  --t-hero-grad: rgba(11,15,26,0.95);
+}
+
+[data-theme="light"] {
+  --t-bg: #F4F6FB;
+  --t-s: #FFFFFF;
+  --t-sh: #EEF0F7;
+  --t-a: #00A86B;
+  --t-ad: rgba(0,168,107,0.10);
+  --t-ab: rgba(0,168,107,0.25);
+  --t-tx: #1A1E2E;
+  --t-tm: #5A6080;
+  --t-b: #DDE1EE;
+  --t-w: #C07000;
+  --t-wa: rgba(192,112,0,0.12);
+  --t-d: #CC2233;
+  --t-da: rgba(204,34,51,0.12);
+  --t-nav-bg: rgba(244,246,251,0.97);
+  --t-hero-grad: rgba(255,255,255,0.95);
+}
+
+/* ── Reset ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
   margin: 0;
+  background: var(--t-bg);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -7,7 +48,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* ── Skeleton loading ── */
+@keyframes shimmer {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 0.85; }
+  100% { opacity: 0.4; }
+}
+
+.skeleton {
+  animation: shimmer 1.4s ease-in-out infinite;
+  background: var(--t-sh);
+}
+
+/* ── Card fade-in ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-fade-in {
+  animation: fadeIn 0.3s ease forwards;
 }

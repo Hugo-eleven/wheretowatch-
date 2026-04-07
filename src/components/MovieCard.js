@@ -27,6 +27,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
     return (
       <div
         onClick={() => onOpen(movie)}
+        className="card-fade-in"
         style={{
           minWidth: 130,
           background: t.s,
@@ -74,6 +75,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
   return (
     <div
       onClick={() => onOpen(movie)}
+      className="card-fade-in"
       style={{
         background: t.s,
         borderRadius: 18,
@@ -82,6 +84,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
         cursor: "pointer",
         border: "1px solid " + t.b,
         boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+        transition: "box-shadow 0.15s",
       }}
     >
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>

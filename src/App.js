@@ -12,6 +12,20 @@ import { MovieCard } from "./components/MovieCard";
 import { SportCard } from "./components/SportCard";
 import { RankingCard } from "./components/RankingCard";
 
+const PLATFORM_PRICES = {
+  "Netflix": "33 zł/msc",
+  "Canal+": "45 zł/msc",
+  "Apple TV+": "34.99 zł/msc",
+  "Disney+": "37.99 zł/msc",
+  "Max": "29.99 zł/msc",
+  "SkyShowtime": "19.99 zł/msc",
+  "Amazon Prime Video": "49 zł/rok",
+  "Amazon Prime": "49 zł/rok",
+  "Viaplay": "34 zł/msc",
+  "Eurosport Player": "29.99 zł/msc",
+  "TVP VOD": "Za darmo",
+};
+
 const WRAP = {
   fontFamily: "'Segoe UI', system-ui, sans-serif",
   background: t.bg,
@@ -30,6 +44,23 @@ function Logo() {
   );
 }
 
+function ThemeToggle({ darkMode, toggle }) {
+  return (
+    <button
+      onClick={toggle}
+      style={{
+        background: t.ad, border: "1px solid " + t.ab,
+        borderRadius: 20, color: t.a, fontSize: 16,
+        cursor: "pointer", padding: "4px 12px",
+        transition: "all 0.15s",
+      }}
+      title={darkMode ? "Jasny motyw" : "Ciemny motyw"}
+    >
+      {darkMode ? "☀️" : "🌙"}
+    </button>
+  );
+}
+
 function SectionHeader({ children }) {
   return (
     <div style={{
@@ -43,11 +74,53 @@ function SectionHeader({ children }) {
   );
 }
 
-function Spinner() {
+function SkeletonCompact() {
   return (
-    <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>⏳</div>
-      <div style={{ fontSize: 13 }}>Ładowanie...</div>
+    <div style={{
+      minWidth: 130, borderRadius: 18, overflow: "hidden",
+      flexShrink: 0, border: "1px solid " + t.b, background: t.s,
+    }}>
+      <div className="skeleton" style={{ width: "100%", height: 160, borderRadius: 0 }} />
+      <div style={{ padding: "10px 12px 14px" }}>
+        <div className="skeleton" style={{ height: 12, borderRadius: 4, marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "60%" }} />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{
+      background: t.s, borderRadius: 18, padding: 14,
+      marginBottom: 10, border: "1px solid " + t.b,
+    }}>
+      <div style={{ display: "flex", gap: 14 }}>
+        <div className="skeleton" style={{ width: 58, height: 80, borderRadius: 12, flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div className="skeleton" style={{ height: 15, borderRadius: 4, marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 11, borderRadius: 4, width: "70%", marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 22, borderRadius: 8, width: 60 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonRankingItem({ isLast }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "10px 16px",
+      borderBottom: isLast ? "none" : "1px solid " + t.b,
+    }}>
+      <div className="skeleton" style={{ width: 30, height: 18, borderRadius: 4, flexShrink: 0 }} />
+      <div className="skeleton" style={{ width: 32, height: 44, borderRadius: 6, flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div className="skeleton" style={{ height: 13, borderRadius: 4, marginBottom: 5 }} />
+        <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%" }} />
+      </div>
+      <div className="skeleton" style={{ width: 60, height: 22, borderRadius: 8, flexShrink: 0 }} />
     </div>
   );
 }
@@ -109,6 +182,24 @@ function App() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Tryb jasny/ciemny
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem("wtw_theme") !== "light"; }
+    catch { return true; }
+  });
+
+  // Porównywarka subskrypcji
+  const [savedProvidersMap, setSavedProvidersMap] = useState({});
+  const [savedProvidersLoading, setSavedProvidersLoading] = useState(false);
+
+  // Sync motywu z DOM + localStorage
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+    localStorage.setItem("wtw_theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
+
+  const toggleTheme = () => setDarkMode(d => !d);
+
   // Zapisuj ulubione do localStorage przy każdej zmianie
   useEffect(() => {
     localStorage.setItem("wtw_saved", JSON.stringify(savedMovies));
@@ -145,6 +236,33 @@ function App() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Pobieranie dostawców dla zapisanych filmów (porównywarka subskrypcji)
+  useEffect(() => {
+    if (screen !== "saved") return;
+    const currentSavedList = [...popularMovies, ...searchResults].filter(
+      (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
+    );
+    const needProviders = currentSavedList.filter(m => !(m.id in savedProvidersMap));
+    if (needProviders.length === 0) return;
+
+    setSavedProvidersLoading(true);
+    Promise.all(
+      needProviders.map(m =>
+        fetchProviders(m.id, m.mediaType ?? "movie")
+          .then(p => ({ id: m.id, p }))
+          .catch(() => ({ id: m.id, p: null }))
+      )
+    ).then(results => {
+      setSavedProvidersMap(prev => {
+        const next = { ...prev };
+        results.forEach(({ id, p }) => { next[id] = p; });
+        return next;
+      });
+      setSavedProvidersLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, savedMovies.length, popularMovies.length]);
+
   async function openMovie(movie, from) {
     setPrevScreen(from || screen);
     setSelectedMovie(movie);
@@ -173,7 +291,6 @@ function App() {
       setSimilarMovies(similar);
       setTrailerKey(videoKey);
 
-      // OMDb: najpierw pobierz IMDb ID, potem oceny
       const imdbId = await fetchExternalIds(movie.id, mediaType);
       if (imdbId) {
         const omdb = await fetchOMDbRatings(imdbId);
@@ -219,13 +336,7 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <span style={{
-            background: t.ad, color: t.a, fontSize: 10,
-            fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-            border: "1px solid " + t.ab,
-          }}>
-            v0.1
-          </span>
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
         </div>
 
         <div style={{ padding: "8px 20px 24px" }}>
@@ -241,13 +352,29 @@ function App() {
         {homeError ? (
           <ErrorMsg msg={homeError} />
         ) : homeLoading ? (
-          <Spinner />
+          <>
+            <div style={{ padding: "0 20px", marginBottom: 28 }}>
+              <SectionHeader>Popularne teraz</SectionHeader>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                {[...Array(5)].map((_, i) => <SkeletonCompact key={i} />)}
+              </div>
+            </div>
+            <div style={{ padding: "0 20px", marginBottom: 28 }}>
+              <SectionHeader>Najwyżej oceniane</SectionHeader>
+              <div style={{
+                background: t.s, borderRadius: 18,
+                border: "1px solid " + t.b, overflow: "hidden",
+              }}>
+                {[...Array(8)].map((_, i) => <SkeletonRankingItem key={i} isLast={i === 7} />)}
+              </div>
+            </div>
+          </>
         ) : (
           <>
             {/* Popularne teraz */}
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
               <SectionHeader>Popularne teraz</SectionHeader>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
                 {popularMovies.slice(0, 10).map(m => (
                   <MovieCard key={m.id} movie={m} onOpen={openMovie} compact />
                 ))}
@@ -269,6 +396,7 @@ function App() {
                         background: rankingTab === tab.id ? t.ad : t.s,
                         color: rankingTab === tab.id ? t.a : t.tm,
                         fontSize: 11, fontWeight: 700,
+                        transition: "all 0.15s",
                       }}
                     >
                       {tab.label}
@@ -327,7 +455,10 @@ function App() {
 
     return (
       <div style={WRAP}>
-        <div style={{ padding: "22px 20px 10px" }}><Logo /></div>
+        <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Logo />
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        </div>
         <div style={{ padding: "8px 20px 12px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
           <div style={{ position: "relative" }}>
@@ -360,6 +491,7 @@ function App() {
                   background: searchFilter === f.id ? t.ad : t.s,
                   color: searchFilter === f.id ? t.a : t.tm,
                   fontSize: 12, fontWeight: 700,
+                  transition: "all 0.15s",
                 }}
               >
                 {f.label}
@@ -370,7 +502,7 @@ function App() {
 
         <div style={{ padding: "0 20px" }}>
           {searchLoading ? (
-            <Spinner />
+            [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
           ) : visibleResults.length > 0 ? (
             visibleResults.map(m => (
               <MovieCard
@@ -410,17 +542,19 @@ function App() {
 
     return (
       <div style={WRAP}>
-        <div style={{ padding: "16px 20px" }}>
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button
             onClick={() => setScreen(prevScreen)}
             style={{
               background: t.s, border: "1px solid " + t.b,
               borderRadius: 10, color: t.a, fontSize: 13,
               fontWeight: 700, cursor: "pointer", padding: "7px 14px",
+              transition: "all 0.15s",
             }}
           >
             ← Wróć
           </button>
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
         </div>
 
         {/* Hero */}
@@ -440,7 +574,7 @@ function App() {
                 />
                 <div style={{
                   position: "absolute", bottom: 0, left: 0, right: 0,
-                  background: "linear-gradient(transparent, rgba(11,15,26,0.95))",
+                  background: "linear-gradient(transparent, var(--t-hero-grad))",
                   padding: "60px 20px 20px",
                 }}>
                   <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px", lineHeight: 1.2 }}>
@@ -465,8 +599,8 @@ function App() {
                 {m.imdb && (
                   <span style={{
                     padding: "5px 12px", borderRadius: 10, fontSize: 12,
-                    fontWeight: 700, background: "rgba(0,229,160,0.12)", color: t.a,
-                    border: "1px solid rgba(0,229,160,0.25)",
+                    fontWeight: 700, background: t.ad, color: t.a,
+                    border: "1px solid " + t.ab,
                   }}>
                     ⭐ {m.imdb} TMDB
                   </span>
@@ -482,8 +616,8 @@ function App() {
                 {ratings?.rottenTomatoes && (
                   <span style={{
                     padding: "5px 12px", borderRadius: 10, fontSize: 12,
-                    fontWeight: 700, background: "rgba(255,77,106,0.12)", color: t.d,
-                    border: "1px solid rgba(255,77,106,0.25)",
+                    fontWeight: 700, background: t.da, color: t.d,
+                    border: "1px solid " + t.d,
                   }}>
                     🍅 {ratings.rottenTomatoes}
                   </span>
@@ -498,19 +632,17 @@ function App() {
           {trailerKey && (
             <div style={{ marginBottom: 20 }}>
               <SectionHeader>Trailer</SectionHeader>
-              <div style={{
-                position: "relative", paddingBottom: "56.25%", height: 0,
-                borderRadius: 16, overflow: "hidden",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-              }}>
-                <iframe
-                  src={`https://www.youtube.com/embed/${trailerKey}`}
-                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="Trailer"
-                />
-              </div>
+              <iframe
+                src={`https://www.youtube.com/embed/${trailerKey}`}
+                style={{
+                  width: "100%", height: 220, border: "none",
+                  borderRadius: 14, display: "block",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Trailer"
+              />
             </div>
           )}
 
@@ -619,6 +751,7 @@ function App() {
                                 background: episodeSort === mode.id ? t.ad : t.s,
                                 color: episodeSort === mode.id ? t.a : t.tm,
                                 fontSize: 11, fontWeight: 700,
+                                transition: "all 0.15s",
                               }}
                             >
                               {mode.label}
@@ -650,9 +783,7 @@ function App() {
                                   ⭐ {ep.rating}
                                 </span>
                               ) : (
-                                <span style={{
-                                  fontSize: 10, color: t.tm, flexShrink: 0, marginLeft: 8,
-                                }}>
+                                <span style={{ fontSize: 10, color: t.tm, flexShrink: 0, marginLeft: 8 }}>
                                   Brak oceny
                                 </span>
                               )}
@@ -692,15 +823,10 @@ function App() {
             {detailLoading ? (
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} style={{
-                    minWidth: 70, textAlign: "center", flexShrink: 0,
-                  }}>
-                    <div style={{
-                      width: 64, height: 64, borderRadius: "50%",
-                      background: t.sh, margin: "0 auto 8px",
-                    }} />
-                    <div style={{ height: 10, background: t.sh, borderRadius: 4, margin: "0 4px 4px" }} />
-                    <div style={{ height: 8, background: t.b, borderRadius: 4, margin: "0 10px" }} />
+                  <div key={i} style={{ minWidth: 70, textAlign: "center", flexShrink: 0 }}>
+                    <div className="skeleton" style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 8px" }} />
+                    <div className="skeleton" style={{ height: 10, borderRadius: 4, margin: "0 4px 4px" }} />
+                    <div className="skeleton" style={{ height: 8, borderRadius: 4, margin: "0 10px" }} />
                   </div>
                 ))}
               </div>
@@ -711,8 +837,7 @@ function App() {
                     <div style={{
                       width: 64, height: 64, borderRadius: "50%",
                       overflow: "hidden", margin: "0 auto 8px",
-                      background: t.sh,
-                      border: "2px solid " + t.b,
+                      background: t.sh, border: "2px solid " + t.b,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       {actor.photo ? (
@@ -750,8 +875,21 @@ function App() {
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>Gdzie obejrzeć w Polsce</SectionHeader>
             {detailLoading ? (
-              <div style={{ padding: "20px 0", color: t.tm, fontSize: 13, textAlign: "center" }}>
-                ⏳ Sprawdzam dostępność...
+              <div>
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    background: t.s, border: "1.5px solid " + t.b,
+                    borderRadius: 14, padding: "12px 16px", marginBottom: 8,
+                  }}>
+                    <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div className="skeleton" style={{ height: 14, borderRadius: 4, marginBottom: 6 }} />
+                      <div className="skeleton" style={{ height: 11, borderRadius: 4, width: "50%" }} />
+                    </div>
+                    <div className="skeleton" style={{ width: 70, height: 32, borderRadius: 10 }} />
+                  </div>
+                ))}
               </div>
             ) : providerGroups.length > 0 ? (
               providerGroups.map(group => (
@@ -861,7 +999,10 @@ function App() {
     const filteredSports = filterByDiscipline(SPORTS_EVENTS, sportsDiscipline);
     return (
       <div style={WRAP}>
-        <div style={{ padding: "22px 20px 10px" }}><Logo /></div>
+        <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Logo />
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        </div>
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ Sport na żywo</h2>
           <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Najbliższe transmisje w Polsce</p>
@@ -873,13 +1014,12 @@ function App() {
               onClick={() => setSportsDiscipline(d.id)}
               style={{
                 flexShrink: 0,
-                padding: "7px 14px",
-                borderRadius: 20,
+                padding: "7px 14px", borderRadius: 20,
                 border: "1.5px solid " + (sportsDiscipline === d.id ? t.a : t.b),
                 background: sportsDiscipline === d.id ? t.ad : t.s,
                 color: sportsDiscipline === d.id ? t.a : t.tm,
                 fontSize: 12, fontWeight: 700, cursor: "pointer",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap", transition: "all 0.15s",
               }}
             >
               {d.icon} {d.label}
@@ -907,9 +1047,33 @@ function App() {
     (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
   );
 
+  // Oblicz ranking platform (flatrate = streaming)
+  const platformCounts = {};
+  savedList.forEach(m => {
+    const providers = savedProvidersMap[m.id];
+    if (!providers) return;
+    const seen = new Set();
+    (providers.flatrate ?? []).forEach(p => {
+      if (!seen.has(p.provider_name)) {
+        seen.add(p.provider_name);
+        platformCounts[p.provider_name] = (platformCounts[p.provider_name] || 0) + 1;
+      }
+    });
+  });
+  const platformRanking = Object.entries(platformCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => ({ name, count, price: PLATFORM_PRICES[name] ?? null }));
+
+  const hasProviderData = savedList.length > 0 && savedList.some(m => m.id in savedProvidersMap);
+  const RANK_ICONS = ["🏆", "🥈", "🥉"];
+
   return (
     <div style={WRAP}>
-      <div style={{ padding: "22px 20px 10px" }}><Logo /></div>
+      <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Logo />
+        <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+      </div>
       <div style={{ padding: "8px 20px 20px" }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ Moja lista</h2>
         <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>
@@ -918,6 +1082,76 @@ function App() {
             : "Brak zapisanych tytułów"}
         </p>
       </div>
+
+      {/* Porównywarka subskrypcji */}
+      {savedList.length > 0 && (
+        <div style={{ padding: "0 20px", marginBottom: 24 }}>
+          <SectionHeader>Najlepsza subskrypcja dla Ciebie</SectionHeader>
+          {savedProvidersLoading && !hasProviderData ? (
+            [...Array(2)].map((_, i) => (
+              <div key={i} style={{
+                background: t.s, border: "1px solid " + t.b,
+                borderRadius: 14, padding: "14px 16px", marginBottom: 8,
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton" style={{ height: 14, borderRadius: 4, marginBottom: 6 }} />
+                  <div className="skeleton" style={{ height: 11, borderRadius: 4, width: "60%" }} />
+                </div>
+                <div className="skeleton" style={{ width: 60, height: 22, borderRadius: 10 }} />
+              </div>
+            ))
+          ) : platformRanking.length > 0 ? (
+            platformRanking.map(({ name, count, price }, i) => (
+              <div key={name} className="card-fade-in" style={{
+                background: i === 0 ? t.ad : t.s,
+                border: "1.5px solid " + (i === 0 ? t.ab : t.b),
+                borderRadius: 14, padding: "14px 16px", marginBottom: 8,
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: i === 0 ? t.ab : t.sh,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 18, flexShrink: 0,
+                }}>
+                  {RANK_ICONS[i]}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? t.a : t.tx }}>
+                    {name}
+                  </div>
+                  <div style={{ fontSize: 12, color: t.tm, marginTop: 2 }}>
+                    pokrywa {count} z {savedList.length} {savedList.length === 1 ? "tytułu" : "tytułów"}
+                  </div>
+                </div>
+                {price && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: i === 0 ? t.a : t.tm,
+                    background: i === 0 ? t.ab : t.sh,
+                    padding: "4px 10px", borderRadius: 10,
+                    whiteSpace: "nowrap", flexShrink: 0,
+                  }}>
+                    {price}
+                  </span>
+                )}
+              </div>
+            ))
+          ) : hasProviderData ? (
+            <div style={{
+              background: t.s, border: "1px solid " + t.b,
+              borderRadius: 14, padding: "16px",
+              textAlign: "center", color: t.tm, fontSize: 13,
+            }}>
+              <div style={{ fontSize: 24, marginBottom: 6 }}>🌍</div>
+              Żaden z Twoich tytułów nie ma platform streamingowych w Polsce
+            </div>
+          ) : null}
+        </div>
+      )}
+
       <div style={{ padding: "0 20px" }}>
         {savedList.length > 0 ? savedList.map(m => (
           <MovieCard

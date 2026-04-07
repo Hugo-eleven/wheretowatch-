@@ -19,7 +19,7 @@ export function Navigation({ screen, setScreen }) {
       display: "flex",
       justifyContent: "space-around",
       alignItems: "center",
-      background: "rgba(11,15,26,0.97)",
+      background: "var(--t-nav-bg)",
       backdropFilter: "blur(20px)",
       borderTop: "1px solid " + t.b,
       padding: "8px 0 20px",
