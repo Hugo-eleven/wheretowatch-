@@ -1,36 +1,13 @@
 import { t } from "../theme";
 
-function Poster({ src, size = 30, radius = 14, style = {} }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt=""
-        loading="lazy"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          borderRadius: radius,
-          display: "block",
-          ...style,
-        }}
-      />
-    );
-  }
-  return (
-    <span style={{ fontSize: size, lineHeight: 1 }}>🎬</span>
-  );
-}
-
 export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false }) {
   if (compact) {
     return (
       <div
         onClick={() => onOpen(movie)}
-        className="card-fade-in"
+        className="card-fade-in compact-card-hover"
         style={{
-          minWidth: 130,
+          minWidth: 180,
           background: t.s,
           borderRadius: 18,
           overflow: "hidden",
@@ -38,36 +15,38 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
           border: "1px solid " + t.b,
           boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
           flexShrink: 0,
+          position: "relative",
+          height: 240,
         }}
       >
-        <div style={{
-          width: "100%",
-          height: 160,
-          background: t.ad,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-        }}>
-          <Poster src={movie.poster} size={40} radius={0} />
+        {/* Poster */}
+        <div style={{ width: "100%", height: "100%", background: t.ad, overflow: "hidden" }}>
+          {movie.poster ? (
+            <img
+              src={movie.poster}
+              alt=""
+              loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 40 }}>🎬</div>
+          )}
         </div>
-        <div style={{ padding: "10px 12px 12px" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginBottom: 4 }}>
+        {/* Gradient overlay with title */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: "linear-gradient(transparent, rgba(0,0,0,0.92))",
+          padding: "48px 12px 12px",
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, color: "#E8ECF4", marginBottom: 3 }}>
             {movie.title}
           </div>
-          <div style={{ fontSize: 10, color: t.tm, marginBottom: 6 }}>{movie.year}</div>
-          {movie.imdb && (
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: t.w,
-              background: t.wa,
-              padding: "2px 8px",
-              borderRadius: 6,
-            }}>
-              ⭐ {movie.imdb}
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {movie.imdb && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#FFB547" }}>⭐ {movie.imdb}</span>
+            )}
+            <span style={{ fontSize: 10, color: "rgba(232,236,244,0.55)" }}>{movie.year}</span>
+          </div>
         </div>
       </div>
     );
@@ -76,7 +55,7 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
   return (
     <div
       onClick={() => onOpen(movie)}
-      className="card-fade-in"
+      className="card-fade-in movie-card-hover"
       style={{
         background: t.s,
         borderRadius: 18,
@@ -85,7 +64,6 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
         cursor: "pointer",
         border: "1px solid " + t.b,
         boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-        transition: "box-shadow 0.15s",
       }}
     >
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -100,7 +78,16 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
           overflow: "hidden",
           flexShrink: 0,
         }}>
-          <Poster src={movie.poster} size={28} radius={12} />
+          {movie.poster ? (
+            <img
+              src={movie.poster}
+              alt=""
+              loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12, display: "block" }}
+            />
+          ) : (
+            <span style={{ fontSize: 28, lineHeight: 1 }}>🎬</span>
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>

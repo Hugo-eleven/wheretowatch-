@@ -33,6 +33,7 @@ export function mapMovie(m) {
     genre: genreName,
     imdb: m.vote_average != null ? Number(m.vote_average.toFixed(1)) : null,
     poster: m.poster_path ? `${POSTER_URL}${m.poster_path}` : null,
+    backdrop: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
     duration: m.runtime ? `${Math.floor(m.runtime / 60)}h ${m.runtime % 60}m` : null,
     synopsis: m.overview || "Brak opisu.",
     platforms: [],

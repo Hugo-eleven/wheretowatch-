@@ -1,5 +1,3 @@
-import { t } from "../theme";
-
 const NAV_ITEMS = [
   { id: "home", label: "Odkrywaj", emoji: "🏠" },
   { id: "search", label: "Szukaj", emoji: "🔍" },
@@ -15,13 +13,14 @@ export function Navigation({ screen, setScreen }) {
       left: "50%",
       transform: "translateX(-50%)",
       width: "100%",
-      maxWidth: 480,
+      maxWidth: 960,
       display: "flex",
       justifyContent: "space-around",
       alignItems: "center",
-      background: "var(--t-nav-bg)",
+      background: "rgba(11,15,26,0.65)",
       backdropFilter: "blur(20px)",
-      borderTop: "1px solid " + t.b,
+      WebkitBackdropFilter: "blur(20px)",
+      borderTop: "1px solid rgba(255,255,255,0.07)",
       padding: "8px 0 20px",
       zIndex: 100,
     }}>
@@ -32,10 +31,9 @@ export function Navigation({ screen, setScreen }) {
             key={item.id}
             onClick={() => setScreen(item.id)}
             style={{
-              background: active ? t.ad : "none",
-              border: active ? "1px solid " + t.ab : "1px solid transparent",
-              borderRadius: 12,
-              color: active ? t.a : t.tm,
+              background: "none",
+              border: "none",
+              color: active ? "var(--t-a)" : "var(--t-tm)",
               fontSize: 10,
               fontWeight: active ? 700 : 600,
               cursor: "pointer",
@@ -44,12 +42,14 @@ export function Navigation({ screen, setScreen }) {
               alignItems: "center",
               gap: 3,
               padding: "6px 16px",
-              transition: "all 0.15s",
+              position: "relative",
+              transition: "color 0.15s",
               letterSpacing: 0.3,
             }}
           >
             <span style={{ fontSize: 19, lineHeight: 1 }}>{item.emoji}</span>
             {item.label}
+            {active && <div className="nav-tab-underline" />}
           </button>
         );
       })}

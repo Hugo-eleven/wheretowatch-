@@ -41,9 +41,9 @@
 body {
   margin: 0;
   background: var(--t-bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -68,4 +68,74 @@ body {
 
 .card-fade-in {
   animation: fadeIn 0.3s ease forwards;
+}
+
+/* ── Card hover effects ── */
+.movie-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.movie-card-hover:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.55) !important;
+}
+.compact-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.compact-card-hover:hover {
+  transform: scale(1.03);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.55) !important;
+}
+
+/* ── Hero banner dots ── */
+.hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+.hero-dot.active {
+  width: 22px;
+  border-radius: 4px;
+  background: #00E5A0;
+}
+
+/* ── Nav animated underline ── */
+.nav-tab-underline {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--t-a);
+  animation: underlineIn 0.2s ease;
+}
+@keyframes underlineIn {
+  from { width: 0; opacity: 0; }
+  to   { width: 20px; opacity: 1; }
+}
+
+/* ── Desktop responsive ── */
+@media (min-width: 768px) {
+  .search-results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .search-results-grid > * {
+    margin-bottom: 0 !important;
+  }
+  .carousel-desktop > * {
+    min-width: 180px !important;
+  }
+  .app-container {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+  }
 }

@@ -27,11 +27,11 @@ const PLATFORM_PRICES = {
 };
 
 const WRAP = {
-  fontFamily: "'Segoe UI', system-ui, sans-serif",
+  fontFamily: "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif",
   background: t.bg,
   color: t.tx,
   minHeight: "100vh",
-  maxWidth: 480,
+  maxWidth: 960,
   margin: "0 auto",
   paddingBottom: 90,
 };
@@ -135,6 +135,95 @@ function ErrorMsg({ msg }) {
   );
 }
 
+function SplashScreen({ onDone }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0,
+      background: "#0B0F1A",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      zIndex: 9999, padding: 32, textAlign: "center",
+    }}>
+      <div style={{ fontSize: 52, fontWeight: 800, color: "#00E5A0", marginBottom: 6, letterSpacing: -1 }}>
+        Where<span style={{ color: "#E8ECF4", fontWeight: 400 }}>to</span>Watch
+      </div>
+      <div style={{ fontSize: 15, color: "#6B7394", marginBottom: 52, lineHeight: 1.65, maxWidth: 280 }}>
+        Znajdź gdzie obejrzeć filmy, seriale i sport w Polsce
+      </div>
+      <button
+        onClick={onDone}
+        style={{
+          background: "#00E5A0", border: "none",
+          borderRadius: 16, color: "#0B0F1A",
+          fontSize: 16, fontWeight: 800,
+          cursor: "pointer", padding: "14px 44px",
+          boxShadow: "0 4px 24px rgba(0,229,160,0.35)",
+        }}
+      >
+        Zaczynajmy
+      </button>
+    </div>
+  );
+}
+
+function HeroBanner({ movies, index, setIndex, onOpen }) {
+  const movie = movies[index];
+  if (!movie?.backdrop) return null;
+  return (
+    <div style={{ position: "relative", width: "100%", height: 300, overflow: "hidden", marginBottom: 28 }}>
+      <img
+        src={movie.backdrop}
+        alt={movie.title}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+      {/* gradient bottom */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "linear-gradient(to top, rgba(11,15,26,1) 0%, rgba(11,15,26,0.55) 55%, transparent 100%)",
+      }} />
+      {/* content */}
+      <div style={{ position: "absolute", bottom: 44, left: 24, right: 24 }}>
+        <div style={{ fontSize: 23, fontWeight: 800, color: "#E8ECF4", marginBottom: 6, lineHeight: 1.2, textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
+          {movie.title}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          {movie.imdb && (
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#FFB547" }}>⭐ {movie.imdb}</span>
+          )}
+          <span style={{ fontSize: 12, color: "rgba(232,236,244,0.65)" }}>
+            {[movie.year, movie.genre].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+        <button
+          onClick={() => onOpen(movie)}
+          style={{
+            background: "#00E5A0", border: "none",
+            borderRadius: 12, color: "#0B0F1A",
+            fontSize: 13, fontWeight: 800,
+            cursor: "pointer", padding: "9px 24px",
+            boxShadow: "0 2px 16px rgba(0,229,160,0.3)",
+          }}
+        >
+          Szczegóły
+        </button>
+      </div>
+      {/* dots */}
+      <div style={{
+        position: "absolute", bottom: 16, left: 0, right: 0,
+        display: "flex", justifyContent: "center", gap: 6,
+      }}>
+        {movies.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`hero-dot${i === index ? " active" : ""}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
@@ -197,6 +286,15 @@ function App() {
     catch { return true; }
   });
 
+  // Splash screen
+  const [splashDone, setSplashDone] = useState(() => {
+    try { return localStorage.getItem("wtw_splash") === "1"; }
+    catch { return false; }
+  });
+
+  // Hero banner auto-rotation
+  const [heroBannerIndex, setHeroBannerIndex] = useState(0);
+
   // Cache szczegółów filmów spoza popularMovies/searchResults
   const [savedMoviesCache, setSavedMoviesCache] = useState({});
   const [savedCacheLoading, setSavedCacheLoading] = useState(false);
@@ -235,6 +333,15 @@ function App() {
         setHomeLoading(false);
       });
   }, []);
+
+  // Auto-rotacja hero banner co 6 sekund
+  useEffect(() => {
+    if (popularMovies.length === 0) return;
+    const timer = setInterval(() => {
+      setHeroBannerIndex(i => (i + 1) % Math.min(5, popularMovies.length));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [popularMovies.length]);
 
   // Wyszukiwanie z debounce 400ms
   useEffect(() => {
@@ -376,6 +483,16 @@ function App() {
 
   const isSaved = id => savedMovies.includes(id);
 
+  // ====== SPLASH ======
+  if (!splashDone) {
+    return (
+      <SplashScreen onDone={() => {
+        try { localStorage.setItem("wtw_splash", "1"); } catch {}
+        setSplashDone(true);
+      }} />
+    );
+  }
+
   // ====== HOME ======
   if (screen === "home") {
     return (
@@ -385,15 +502,15 @@ function App() {
           <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
         </div>
 
-        <div style={{ padding: "8px 20px 24px" }}>
-          <h2 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 4px", lineHeight: 1.3 }}>
-            Znajdź gdzie obejrzeć{" "}
-            <span style={{ color: t.a }}>cokolwiek chcesz.</span>
-          </h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: 0 }}>
-            Filmy, seriale i sport — wszystko w jednym miejscu.
-          </p>
-        </div>
+        {/* Hero Banner */}
+        {!homeLoading && !homeError && (
+          <HeroBanner
+            movies={popularMovies.slice(0, 5)}
+            index={heroBannerIndex}
+            setIndex={setHeroBannerIndex}
+            onOpen={openMovie}
+          />
+        )}
 
         {homeError ? (
           <ErrorMsg msg={homeError} />
@@ -420,7 +537,7 @@ function App() {
             {/* Popularne teraz */}
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
               <SectionHeader>Popularne teraz</SectionHeader>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
+              <div className="carousel-desktop" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
                 {popularMovies.slice(0, 10).map(m => (
                   <MovieCard key={m.id} movie={m} onOpen={openMovie} compact />
                 ))}
@@ -548,16 +665,20 @@ function App() {
 
         <div style={{ padding: "0 20px" }}>
           {searchLoading ? (
-            [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
+            <div className="search-results-grid">
+              {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+            </div>
           ) : visibleResults.length > 0 ? (
-            visibleResults.map(m => (
-              <MovieCard
-                key={m.id} movie={m}
-                onOpen={openMovie}
-                onToggleSaved={toggleSaved}
-                saved={isSaved(m.id)}
-              />
-            ))
+            <div className="search-results-grid">
+              {visibleResults.map(m => (
+                <MovieCard
+                  key={m.id} movie={m}
+                  onOpen={openMovie}
+                  onToggleSaved={toggleSaved}
+                  saved={isSaved(m.id)}
+                />
+              ))}
+            </div>
           ) : searchQuery.trim() ? (
             <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
