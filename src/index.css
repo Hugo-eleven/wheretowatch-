@@ -3,9 +3,9 @@
   --t-bg: #0B0F1A;
   --t-s: #141929;
   --t-sh: #1C2238;
-  --t-a: #00E5A0;
-  --t-ad: rgba(0,229,160,0.12);
-  --t-ab: rgba(0,229,160,0.25);
+  --t-a: #E50914;
+  --t-ad: rgba(229,9,20,0.12);
+  --t-ab: rgba(229,9,20,0.28);
   --t-tx: #E8ECF4;
   --t-tm: #6B7394;
   --t-b: #1E2540;
@@ -21,9 +21,9 @@
   --t-bg: #F4F6FB;
   --t-s: #FFFFFF;
   --t-sh: #EEF0F7;
-  --t-a: #00A86B;
-  --t-ad: rgba(0,168,107,0.10);
-  --t-ab: rgba(0,168,107,0.25);
+  --t-a: #E50914;
+  --t-ad: rgba(229,9,20,0.10);
+  --t-ab: rgba(229,9,20,0.25);
   --t-tx: #1A1E2E;
   --t-tm: #5A6080;
   --t-b: #DDE1EE;
@@ -101,7 +101,7 @@ body {
 .hero-dot.active {
   width: 22px;
   border-radius: 4px;
-  background: #00E5A0;
+  background: #E50914;
 }
 
 /* ── Nav animated underline ── */

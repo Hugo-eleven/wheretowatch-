@@ -41,8 +41,10 @@ const WRAP = {
 
 function Logo() {
   return (
-    <div style={{ fontSize: 20, fontWeight: 800, color: t.a, letterSpacing: -0.5 }}>
-      Where<span style={{ color: t.tx, fontWeight: 400 }}>to</span>Watch
+    <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+      <span style={{ color: t.a }}>Where</span>
+      <span style={{ color: t.tm, fontWeight: 400 }}>to</span>
+      <span style={{ color: t.tx }}>Watch</span>
     </div>
   );
 }
@@ -230,6 +232,88 @@ function UpcomingCard({ movie, onOpen }) {
   );
 }
 
+function UserAvatar({ user, onSignOut, onShowAuth }) {
+  const [open, setOpen] = useState(false);
+  if (!user) {
+    return (
+      <button
+        onClick={onShowAuth}
+        style={{
+          background: t.ad, border: "1.5px solid " + t.ab,
+          borderRadius: 20, color: t.a,
+          fontSize: 11, fontWeight: 700,
+          cursor: "pointer", padding: "5px 13px",
+        }}
+      >
+        Zaloguj się
+      </button>
+    );
+  }
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        title={user.email}
+        style={{
+          width: 34, height: 34, borderRadius: 17,
+          background: t.a, border: "none", color: "#fff",
+          fontSize: 13, fontWeight: 800, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {(user.email?.[0] ?? "U").toUpperCase()}
+      </button>
+      {open && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 498 }}
+            onClick={() => setOpen(false)}
+          />
+          <div style={{
+            position: "absolute", top: 42, right: 0, zIndex: 499,
+            background: t.s, border: "1px solid " + t.b,
+            borderRadius: 14, overflow: "hidden",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+            minWidth: 210,
+          }}>
+            <div style={{
+              padding: "11px 16px 10px", fontSize: 11,
+              color: t.tm, borderBottom: "1px solid " + t.b,
+              wordBreak: "break-all",
+            }}>
+              {user.email}
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              style={{
+                width: "100%", textAlign: "left", background: "none",
+                border: "none", padding: "11px 16px",
+                fontSize: 13, color: t.tx, cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              👤 Mój profil
+            </button>
+            <button
+              onClick={() => { onSignOut(); setOpen(false); }}
+              style={{
+                width: "100%", textAlign: "left", background: "none",
+                border: "none", padding: "11px 16px",
+                fontSize: 13, color: "#E50914", fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+                borderTop: "1px solid " + t.b,
+              }}
+            >
+              ← Wyloguj się
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SplashScreen({ onDone }) {
   return (
     <div style={{
@@ -239,8 +323,10 @@ function SplashScreen({ onDone }) {
       alignItems: "center", justifyContent: "center",
       zIndex: 9999, padding: 32, textAlign: "center",
     }}>
-      <div style={{ fontSize: 52, fontWeight: 800, color: "#00E5A0", marginBottom: 6, letterSpacing: -1 }}>
-        Where<span style={{ color: "#E8ECF4", fontWeight: 400 }}>to</span>Watch
+      <div style={{ fontSize: 52, fontWeight: 800, letterSpacing: -1, marginBottom: 6 }}>
+        <span style={{ color: "#E50914" }}>Where</span>
+        <span style={{ color: "#6B7394", fontWeight: 400 }}>to</span>
+        <span style={{ color: "#E8ECF4" }}>Watch</span>
       </div>
       <div style={{ fontSize: 15, color: "#6B7394", marginBottom: 52, lineHeight: 1.65, maxWidth: 280 }}>
         Znajdź gdzie obejrzeć filmy, seriale i sport w Polsce
@@ -248,11 +334,11 @@ function SplashScreen({ onDone }) {
       <button
         onClick={onDone}
         style={{
-          background: "#00E5A0", border: "none",
-          borderRadius: 16, color: "#0B0F1A",
+          background: "#E50914", border: "none",
+          borderRadius: 16, color: "#fff",
           fontSize: 16, fontWeight: 800,
           cursor: "pointer", padding: "14px 44px",
-          boxShadow: "0 4px 24px rgba(0,229,160,0.35)",
+          boxShadow: "0 4px 24px rgba(229,9,20,0.4)",
         }}
       >
         Zaczynajmy
@@ -292,11 +378,11 @@ function HeroBanner({ movies, index, setIndex, onOpen }) {
         <button
           onClick={() => onOpen(movie)}
           style={{
-            background: "#00E5A0", border: "none",
-            borderRadius: 12, color: "#0B0F1A",
+            background: "#E50914", border: "none",
+            borderRadius: 12, color: "#fff",
             fontSize: 13, fontWeight: 800,
             cursor: "pointer", padding: "9px 24px",
-            boxShadow: "0 2px 16px rgba(0,229,160,0.3)",
+            boxShadow: "0 2px 16px rgba(229,9,20,0.35)",
           }}
         >
           Szczegóły
@@ -467,6 +553,7 @@ function App() {
       if (!result) return;
       setSavedMovies(result.ids);
       setSavedMediaTypes(result.types);
+      if (result.cache) setSavedMoviesCache(prev => ({ ...prev, ...result.cache }));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -609,15 +696,22 @@ function App() {
   }
 
   function toggleSaved(id, mediaType = "movie") {
-    setSavedMovies(prev => {
-      const removing = prev.includes(id);
-      if (!removing) setSavedMediaTypes(mt => ({ ...mt, [id]: mediaType }));
-      if (user) {
-        if (removing) removeSavedFromSupabase(user.id, id);
-        else addSavedToSupabase(user.id, id, mediaType);
+    const removing = savedMovies.includes(id);
+    if (!removing) setSavedMediaTypes(mt => ({ ...mt, [id]: mediaType }));
+    if (user) {
+      if (removing) {
+        removeSavedFromSupabase(user.id, id);
+      } else {
+        const allMovies = [
+          ...popularMovies, ...topRatedMovies, ...trendingMovies, ...trendingTV,
+          ...searchResults, ...Object.values(savedMoviesCache),
+          selectedMovie,
+        ].filter(Boolean);
+        const movieData = allMovies.find(m => m.id === id) ?? { id, mediaType };
+        addSavedToSupabase(user.id, movieData);
       }
-      return removing ? prev.filter(x => x !== id) : [...prev, id];
-    });
+    }
+    setSavedMovies(prev => removing ? prev.filter(x => x !== id) : [...prev, id]);
   }
 
   async function openSeason(seasonNumber) {
@@ -658,32 +752,11 @@ function App() {
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {user ? (
-              <button
-                onClick={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
-                title={user.email}
-                style={{
-                  width: 34, height: 34, borderRadius: 17,
-                  background: t.a, border: "none", color: "#0B0F1A",
-                  fontSize: 13, fontWeight: 800, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                {(user.email?.[0] ?? "U").toUpperCase()}
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuth(true)}
-                style={{
-                  background: t.ad, border: "1.5px solid " + t.ab,
-                  borderRadius: 20, color: t.a,
-                  fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", padding: "5px 13px",
-                }}
-              >
-                Zaloguj się
-              </button>
-            )}
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+            />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -849,32 +922,11 @@ function App() {
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {user ? (
-              <button
-                onClick={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
-                title={user.email}
-                style={{
-                  width: 34, height: 34, borderRadius: 17,
-                  background: t.a, border: "none", color: "#0B0F1A",
-                  fontSize: 13, fontWeight: 800, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                {(user.email?.[0] ?? "U").toUpperCase()}
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuth(true)}
-                style={{
-                  background: t.ad, border: "1.5px solid " + t.ab,
-                  borderRadius: 20, color: t.a,
-                  fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", padding: "5px 13px",
-                }}
-              >
-                Zaloguj się
-              </button>
-            )}
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+            />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
