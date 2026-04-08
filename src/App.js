@@ -3,14 +3,17 @@ import { t } from "./theme";
 import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sports";
 import {
   fetchPopular, fetchTopRated, searchMulti,
-  fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchEpisodes,
-  fetchExternalIds, fetchVideos, LOGO_URL,
+  fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchRecommendations,
+  fetchTrendingMovies, fetchTrendingTV, fetchUpcoming,
+  fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
+import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase } from "./services/supabase";
 import { Navigation } from "./components/Navigation";
 import { MovieCard } from "./components/MovieCard";
 import { SportCard } from "./components/SportCard";
 import { RankingCard } from "./components/RankingCard";
+import { AuthModal } from "./components/Auth";
 
 const PLATFORM_PRICES = {
   "Netflix": "33 zł/msc",
@@ -131,6 +134,98 @@ function ErrorMsg({ msg }) {
       <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
       <div style={{ fontSize: 14, fontWeight: 600, color: t.d, marginBottom: 4 }}>Błąd połączenia</div>
       <div style={{ fontSize: 12 }}>{msg}</div>
+    </div>
+  );
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+  if (diff <= 0) return "Już dostępne";
+  if (diff === 1) return "Jutro";
+  return `za ${diff} dni`;
+}
+
+function TopTenCard({ movie, rank, onOpen }) {
+  return (
+    <div
+      onClick={() => onOpen(movie)}
+      className="compact-card-hover"
+      style={{
+        position: "relative", cursor: "pointer",
+        minWidth: 130, flexShrink: 0,
+        paddingLeft: rank >= 10 ? 30 : 24,
+        paddingBottom: 12,
+      }}
+    >
+      {/* Number Netflix-style */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, zIndex: 2,
+        fontSize: 86, fontWeight: 800, lineHeight: 1,
+        color: t.bg,
+        WebkitTextStroke: "3px " + t.tm,
+        userSelect: "none",
+        letterSpacing: -4,
+      }}>
+        {rank}
+      </div>
+      {/* Poster */}
+      <div style={{
+        width: 120, height: 168, borderRadius: 14,
+        overflow: "hidden", background: t.ad,
+        position: "relative", zIndex: 1,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.45)",
+      }}>
+        {movie.poster ? (
+          <img src={movie.poster} alt="" loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 36 }}>🎬</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UpcomingCard({ movie, onOpen }) {
+  const days = daysUntil(movie.releaseDate);
+  const dateFormatted = movie.releaseDate
+    ? movie.releaseDate.split("-").reverse().join(".")
+    : null;
+  return (
+    <div
+      onClick={() => onOpen(movie)}
+      className="compact-card-hover"
+      style={{ minWidth: 140, flexShrink: 0, cursor: "pointer" }}
+    >
+      <div style={{
+        width: "100%", height: 196, borderRadius: 16, overflow: "hidden",
+        background: t.ad, position: "relative",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.4)", marginBottom: 8,
+      }}>
+        {movie.poster ? (
+          <img src={movie.poster} alt="" loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 36 }}>🎬</div>
+        )}
+        {days && (
+          <div style={{
+            position: "absolute", top: 8, right: 8,
+            background: t.a, color: "#0B0F1A",
+            fontSize: 9, fontWeight: 800, borderRadius: 8,
+            padding: "3px 7px",
+          }}>
+            {days}
+          </div>
+        )}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2, color: t.tx }}>
+        {movie.title}
+      </div>
+      {dateFormatted && (
+        <div style={{ fontSize: 10, color: t.tm }}>{dateFormatted}</div>
+      )}
     </div>
   );
 }
@@ -295,6 +390,18 @@ function App() {
   // Hero banner auto-rotation
   const [heroBannerIndex, setHeroBannerIndex] = useState(0);
 
+  // Top 10 + Upcoming
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [trendingTV, setTrendingTV] = useState([]);
+  const [upcomingMovies, setUpcomingMovies] = useState([]);
+
+  // Label "Podobne" vs "Rekomendowane"
+  const [similarLabel, setSimilarLabel] = useState("Podobne filmy");
+
+  // Auth
+  const [user, setUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
+
   // Cache szczegółów filmów spoza popularMovies/searchResults
   const [savedMoviesCache, setSavedMoviesCache] = useState({});
   const [savedCacheLoading, setSavedCacheLoading] = useState(false);
@@ -320,19 +427,49 @@ function App() {
     localStorage.setItem("wtw_saved_types", JSON.stringify(savedMediaTypes));
   }, [savedMediaTypes]);
 
-  // Ładuj popularne i top rated przy starcie
+  // Ładuj wszystkie dane startowe
   useEffect(() => {
-    Promise.all([fetchPopular(), fetchTopRated()])
-      .then(([popular, topRated]) => {
-        setPopularMovies(popular);
-        setTopRatedMovies(topRated);
-        setHomeLoading(false);
-      })
-      .catch(err => {
-        setHomeError(err.message);
-        setHomeLoading(false);
-      });
+    Promise.all([
+      fetchPopular(),
+      fetchTopRated(),
+      fetchTrendingMovies().catch(() => []),
+      fetchTrendingTV().catch(() => []),
+      fetchUpcoming().catch(() => []),
+    ]).then(([popular, topRated, trending, trendTV, upcoming]) => {
+      setPopularMovies(popular);
+      setTopRatedMovies(topRated);
+      setTrendingMovies(trending);
+      setTrendingTV(trendTV);
+      setUpcomingMovies(upcoming);
+      setHomeLoading(false);
+    }).catch(err => {
+      setHomeError(err.message);
+      setHomeLoading(false);
+    });
   }, []);
+
+  // Supabase auth
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) setUser(data.session.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Ładuj ulubione z Supabase po zalogowaniu
+  useEffect(() => {
+    if (!user) return;
+    loadSavedFromSupabase(user.id).then(result => {
+      if (!result) return;
+      setSavedMovies(result.ids);
+      setSavedMediaTypes(result.types);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Auto-rotacja hero banner co 6 sekund
   useEffect(() => {
@@ -438,9 +575,26 @@ function App() {
       setSelectedMovie(details);
       setSelectedProviders(providers);
       setSelectedCredits(credits);
-      setSimilarMovies(similar);
-      console.log(`[App] trailerKey =`, videoKey);
       setTrailerKey(videoKey);
+
+      // Filtruj podobne po ocenie > 6.0, sortuj po popularności (malejąco)
+      const goodSimilar = similar
+        .filter(m => (m.imdb ?? 0) >= 6.0)
+        .sort((a, b) => (b.imdb ?? 0) - (a.imdb ?? 0));
+      if (goodSimilar.length >= 3) {
+        setSimilarMovies(goodSimilar);
+        setSimilarLabel("Podobne filmy");
+      } else {
+        try {
+          const recs = await fetchRecommendations(movie.id, mediaType);
+          const goodRecs = recs.filter(m => (m.imdb ?? 0) >= 6.0);
+          setSimilarMovies(goodRecs.length > 0 ? goodRecs : goodSimilar);
+          setSimilarLabel("Rekomendowane");
+        } catch {
+          setSimilarMovies(goodSimilar);
+          setSimilarLabel("Podobne filmy");
+        }
+      }
 
       const imdbId = await fetchExternalIds(movie.id, mediaType);
       if (imdbId) {
@@ -458,6 +612,10 @@ function App() {
     setSavedMovies(prev => {
       const removing = prev.includes(id);
       if (!removing) setSavedMediaTypes(mt => ({ ...mt, [id]: mediaType }));
+      if (user) {
+        if (removing) removeSavedFromSupabase(user.id, id);
+        else addSavedToSupabase(user.id, id, mediaType);
+      }
       return removing ? prev.filter(x => x !== id) : [...prev, id];
     });
   }
@@ -499,7 +657,35 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {user ? (
+              <button
+                onClick={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+                title={user.email}
+                style={{
+                  width: 34, height: 34, borderRadius: 17,
+                  background: t.a, border: "none", color: "#0B0F1A",
+                  fontSize: 13, fontWeight: 800, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {(user.email?.[0] ?? "U").toUpperCase()}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                style={{
+                  background: t.ad, border: "1.5px solid " + t.ab,
+                  borderRadius: 20, color: t.a,
+                  fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", padding: "5px 13px",
+                }}
+              >
+                Zaloguj się
+              </button>
+            )}
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
 
         {/* Hero Banner */}
@@ -584,6 +770,42 @@ function App() {
               </div>
             </div>
 
+            {/* Top 10 Filmów */}
+            {trendingMovies.length > 0 && (
+              <div style={{ padding: "0 20px", marginBottom: 28 }}>
+                <SectionHeader>Top 10 Filmów w Polsce</SectionHeader>
+                <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 8, scrollBehavior: "smooth" }}>
+                  {trendingMovies.map((m, i) => (
+                    <TopTenCard key={m.id} movie={m} rank={i + 1} onOpen={openMovie} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top 10 Seriali */}
+            {trendingTV.length > 0 && (
+              <div style={{ padding: "0 20px", marginBottom: 28 }}>
+                <SectionHeader>Top 10 Seriali w Polsce</SectionHeader>
+                <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 8, scrollBehavior: "smooth" }}>
+                  {trendingTV.map((m, i) => (
+                    <TopTenCard key={m.id} movie={m} rank={i + 1} onOpen={openMovie} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Wkrótce w kinach */}
+            {upcomingMovies.length > 0 && (
+              <div style={{ padding: "0 20px", marginBottom: 28 }}>
+                <SectionHeader>Wkrótce w kinach</SectionHeader>
+                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
+                  {upcomingMovies.map(m => (
+                    <UpcomingCard key={m.id} movie={m} onOpen={openMovie} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Sport */}
             <div style={{ padding: "0 20px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -600,6 +822,12 @@ function App() {
           </>
         )}
 
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={u => { setUser(u); setShowAuth(false); }}
+          />
+        )}
         <Navigation screen={screen} setScreen={setScreen} />
       </div>
     );
@@ -620,8 +848,42 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {user ? (
+              <button
+                onClick={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+                title={user.email}
+                style={{
+                  width: 34, height: 34, borderRadius: 17,
+                  background: t.a, border: "none", color: "#0B0F1A",
+                  fontSize: 13, fontWeight: 800, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {(user.email?.[0] ?? "U").toUpperCase()}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                style={{
+                  background: t.ad, border: "1.5px solid " + t.ab,
+                  borderRadius: 20, color: t.a,
+                  fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", padding: "5px 13px",
+                }}
+              >
+                Zaloguj się
+              </button>
+            )}
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={u => { setUser(u); setShowAuth(false); }}
+          />
+        )}
         <div style={{ padding: "8px 20px 12px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
           <div style={{ position: "relative" }}>
@@ -1130,12 +1392,12 @@ function App() {
             )}
           </div>
 
-          {/* Podobne filmy */}
+          {/* Podobne / Rekomendowane filmy */}
           {similarMovies.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Podobne filmy</SectionHeader>
+              <SectionHeader>{similarLabel}</SectionHeader>
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                {similarMovies.slice(0, 5).map(s => (
+                {similarMovies.slice(0, 8).map(s => (
                   <MovieCard key={s.id} movie={s} onOpen={openMovie} compact />
                 ))}
               </div>

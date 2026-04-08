@@ -71,23 +71,28 @@ function mapTV(m) {
   };
 }
 
+/** Mapuje serial z listy (trending/search) — bez pełnych szczegółów. */
+function mapTVList(m) {
+  const genreId = m.genre_ids?.[0] ?? m.genres?.[0]?.id;
+  const genreName = m.genres?.[0]?.name ?? GENRE_MAP[genreId] ?? "Serial";
+  return {
+    id: m.id,
+    title: m.name,
+    year: m.first_air_date?.slice(0, 4) ?? "—",
+    genre: genreName,
+    imdb: m.vote_average != null ? Number(m.vote_average.toFixed(1)) : null,
+    poster: m.poster_path ? `${POSTER_URL}${m.poster_path}` : null,
+    backdrop: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+    duration: null,
+    synopsis: m.overview || "Brak opisu.",
+    platforms: [],
+    mediaType: "tv",
+  };
+}
+
 /** Mapuje wynik /search/multi (movie lub tv). */
 function mapMultiResult(item) {
-  if (item.media_type === "tv") {
-    const genre = GENRE_MAP[item.genre_ids?.[0]] ?? "Serial";
-    return {
-      id: item.id,
-      title: item.name,
-      year: item.first_air_date?.slice(0, 4) ?? "—",
-      genre,
-      imdb: item.vote_average != null ? Number(item.vote_average.toFixed(1)) : null,
-      poster: item.poster_path ? `${POSTER_URL}${item.poster_path}` : null,
-      duration: null,
-      synopsis: item.overview || "Brak opisu.",
-      platforms: [],
-      mediaType: "tv",
-    };
-  }
+  if (item.media_type === "tv") return mapTVList(item);
   return mapMovie(item);
 }
 
@@ -208,6 +213,39 @@ export function fetchSimilar(id, mediaType = "movie") {
   const path = mediaType === "tv"
     ? `/tv/${id}/similar`
     : `/movie/${id}/similar`;
-  const mapper = mediaType === "tv" ? mapTV : mapMovie;
+  const mapper = mediaType === "tv" ? mapTVList : mapMovie;
   return apiFetch(path).then(d => d.results.slice(0, 10).map(mapper));
+}
+
+/** Rekomendacje dla filmu/serialu. */
+export function fetchRecommendations(id, mediaType = "movie") {
+  const path = mediaType === "tv"
+    ? `/tv/${id}/recommendations`
+    : `/movie/${id}/recommendations`;
+  const mapper = mediaType === "tv" ? mapTVList : mapMovie;
+  return apiFetch(path).then(d => d.results.slice(0, 10).map(mapper));
+}
+
+/** Top 10 trendujących filmów tygodnia. */
+export function fetchTrendingMovies() {
+  return apiFetch("/trending/movie/week", "&region=PL")
+    .then(d => d.results.slice(0, 10).map(mapMovie));
+}
+
+/** Top 10 trendujących seriali tygodnia. */
+export function fetchTrendingTV() {
+  return apiFetch("/trending/tv/week")
+    .then(d => d.results.slice(0, 10).map(mapTVList));
+}
+
+/** Nadchodzące premiery kinowe w Polsce. */
+export function fetchUpcoming() {
+  return apiFetch("/movie/upcoming", "&region=PL")
+    .then(d =>
+      d.results
+        .filter(m => m.release_date)
+        .sort((a, b) => a.release_date.localeCompare(b.release_date))
+        .slice(0, 10)
+        .map(m => ({ ...mapMovie(m), releaseDate: m.release_date }))
+    );
 }
