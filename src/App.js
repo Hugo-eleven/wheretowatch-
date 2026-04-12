@@ -522,7 +522,11 @@ function App() {
       fetchTrendingTV().catch(() => []),
       fetchUpcoming().catch(() => []),
     ]).then(([popular, topRated, trending, trendTV, upcoming]) => {
-      setPopularMovies(popular);
+      const ALLOWED_LANGS = new Set(["en","pl","es","fr","de","it","ja","ko"]);
+      const filterPopular = arr => arr.filter(m =>
+        ALLOWED_LANGS.has(m.original_language) && (m.vote_count || 0) > 100
+      );
+      setPopularMovies(filterPopular(popular));
       setTopRatedMovies(topRated);
       setTrendingMovies(trending);
       setTrendingTV(trendTV);
