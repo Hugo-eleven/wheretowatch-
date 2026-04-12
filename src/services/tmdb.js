@@ -99,7 +99,9 @@ function mapMultiResult(item) {
 // ── Endpointy ────────────────────────────────────────────────────────────────
 
 export function fetchPopular() {
-  return apiFetch("/movie/popular").then(d => d.results.map(mapMovie));
+  return apiFetch("/movie/popular").then(d =>
+    d.results.filter(m => (m.vote_count ?? 0) >= 50).map(mapMovie)
+  );
 }
 
 export function fetchTopRated() {
@@ -238,16 +240,23 @@ export function fetchTrendingTV() {
     .then(d => d.results.slice(0, 10).map(mapTVList));
 }
 
-/** Nadchodzące premiery kinowe w Polsce. */
+/** Nadchodzące premiery kinowe w Polsce — strony 1 i 2. */
 export function fetchUpcoming() {
-  return apiFetch("/movie/upcoming", "&region=PL")
-    .then(d =>
-      d.results
-        .filter(m => m.release_date)
-        .sort((a, b) => a.release_date.localeCompare(b.release_date))
-        .slice(0, 10)
-        .map(m => ({ ...mapMovie(m), releaseDate: m.release_date }))
-    );
+  return Promise.all([
+    apiFetch("/movie/upcoming", "&region=PL&page=1"),
+    apiFetch("/movie/upcoming", "&region=PL&page=2"),
+  ]).then(pages => {
+    const seen = new Set();
+    return pages.flatMap(p => p.results ?? [])
+      .filter(m => {
+        if (!m.release_date || seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      })
+      .sort((a, b) => a.release_date.localeCompare(b.release_date))
+      .slice(0, 20)
+      .map(m => ({ ...mapMovie(m), releaseDate: m.release_date }));
+  });
 }
 
 /** Pełny kalendarz premier — 3 strony TMDB (ok. 60 filmów). */
