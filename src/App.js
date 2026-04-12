@@ -8,6 +8,7 @@ import {
   fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
+import { fetchScheduledMatches } from "./services/football";
 import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase, fetchSportsEvents } from "./services/supabase";
 import { Navigation } from "./components/Navigation";
 import { MovieCard } from "./components/MovieCard";
@@ -768,6 +769,10 @@ function App() {
   // Sport z Supabase
   const [sportsFromDB, setSportsFromDB] = useState(null);
 
+  // Mecze z football-data.org
+  const [footballMatches, setFootballMatches] = useState([]);
+  const [footballLoading, setFootballLoading] = useState(false);
+
   // Mapa ocen serialu
   const [ratingsMap, setRatingsMap] = useState(null);
   const [ratingsMapLoading, setRatingsMapLoading] = useState(false);
@@ -850,6 +855,17 @@ function App() {
   // Ładuj sport z Supabase przy starcie
   useEffect(() => {
     fetchSportsEvents().then(data => { if (data) setSportsFromDB(data); }).catch(() => {});
+  }, []);
+
+  // Ładuj mecze z football-data.org przy starcie
+  useEffect(() => {
+    const key = process.env.REACT_APP_FOOTBALL_API_KEY;
+    if (!key || key === "placeholder") return;
+    setFootballLoading(true);
+    fetchScheduledMatches()
+      .then(matches => setFootballMatches(matches))
+      .catch(() => {})
+      .finally(() => setFootballLoading(false));
   }, []);
 
   // Pobierz oceny odcinków serialu (pierwsze 10 sezonów)
@@ -1725,6 +1741,29 @@ function App() {
             ) : null}
           </div>
 
+          {/* Nagrody */}
+          {ratings?.awards && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Nagrody</SectionHeader>
+              <div style={{
+                background: t.s, border: "1px solid " + t.b,
+                borderRadius: 14, padding: "14px 16px",
+                display: "flex", alignItems: "flex-start", gap: 12,
+              }}>
+                <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1 }}>
+                  {/won.*oscar|oscar.*won/i.test(ratings.awards) ? "🏆" :
+                   /oscar|nominat/i.test(ratings.awards) ? "🥈" : "🏅"}
+                </span>
+                <span style={{
+                  fontSize: 13, color: t.tx, lineHeight: 1.5,
+                  fontWeight: /won.*oscar|oscar.*won/i.test(ratings.awards) ? 700 : 400,
+                }}>
+                  {ratings.awards}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Gdzie obejrzeć */}
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>Gdzie obejrzeć w Polsce</SectionHeader>
@@ -1853,6 +1892,7 @@ function App() {
   // ====== SPORTS ======
   if (screen === "sports") {
     const filteredSports = filterByDiscipline(effectiveSports, sportsDiscipline);
+    const showFootball = sportsDiscipline === "all" || sportsDiscipline === "football";
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1882,16 +1922,66 @@ function App() {
             </button>
           ))}
         </div>
+
         <div style={{ padding: "0 20px" }}>
-          {filteredSports.length > 0
-            ? filteredSports.map(s => <SportCard key={s.id} sport={s} />)
-            : (
-              <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
-                <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
-              </div>
-            )
-          }
+          {/* Nadchodzące mecze z football-data.org */}
+          {showFootball && footballMatches.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <SectionHeader>Nadchodzące mecze</SectionHeader>
+              {footballMatches.map(m => (
+                <div
+                  key={m.id}
+                  style={{
+                    background: t.s, border: "1px solid " + t.b,
+                    borderRadius: 14, padding: "12px 16px", marginBottom: 8,
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: t.a, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
+                    ⚽ {m.competition}{m.area ? ` · ${m.area}` : ""}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: t.tx, marginBottom: 4 }}>
+                    {m.homeTeam} <span style={{ color: t.tm, fontWeight: 400 }}>vs</span> {m.awayTeam}
+                  </div>
+                  <div style={{ fontSize: 12, color: t.tm }}>
+                    📅 {m.dateFormatted}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {showFootball && footballLoading && (
+            <div style={{ marginBottom: 24 }}>
+              <SectionHeader>Nadchodzące mecze</SectionHeader>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
+                  <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "50%", marginBottom: 8 }} />
+                  <div className="skeleton" style={{ height: 14, borderRadius: 4, marginBottom: 6 }} />
+                  <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%" }} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ręczne wydarzenia */}
+          {filteredSports.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <SectionHeader>Wydarzenia ręczne</SectionHeader>
+              {filteredSports.map(s => <SportCard key={s.id} sport={s} />)}
+            </div>
+          )}
+          {filteredSports.length === 0 && !showFootball && (
+            <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+              <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
+            </div>
+          )}
+          {filteredSports.length === 0 && showFootball && footballMatches.length === 0 && !footballLoading && (
+            <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+              <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
+            </div>
+          )}
         </div>
         <Navigation screen={screen} setScreen={setScreen} />
       </div>

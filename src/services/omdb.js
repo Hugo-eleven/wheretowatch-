@@ -1,8 +1,8 @@
 const API_KEY = process.env.REACT_APP_OMDB_API_KEY;
 
 /**
- * Pobiera oceny z OMDb na podstawie IMDb ID.
- * Zwraca { imdb, rottenTomatoes } lub null gdy brak danych.
+ * Pobiera oceny i nagrody z OMDb na podstawie IMDb ID.
+ * Zwraca { imdb, rottenTomatoes, awards } lub null gdy brak danych.
  */
 export async function fetchOMDbRatings(imdbId) {
   if (!imdbId) return null;
@@ -17,5 +17,6 @@ export async function fetchOMDbRatings(imdbId) {
   return {
     imdb: d.imdbRating && d.imdbRating !== "N/A" ? d.imdbRating : null,
     rottenTomatoes: rt?.Value ?? null,
+    awards: d.Awards && d.Awards !== "N/A" ? d.Awards : null,
   };
 }

@@ -98,14 +98,17 @@ function mapMultiResult(item) {
 
 // ── Endpointy ────────────────────────────────────────────────────────────────
 
+const RU_UK = ["ru", "uk"];
+function notRuUk(m) { return !RU_UK.includes(m.original_language); }
+
 export function fetchPopular() {
   return apiFetch("/movie/popular").then(d =>
-    d.results.filter(m => (m.vote_count ?? 0) >= 50).map(mapMovie)
+    d.results.filter(m => (m.vote_count ?? 0) >= 50).filter(notRuUk).map(mapMovie)
   );
 }
 
 export function fetchTopRated() {
-  return apiFetch("/movie/top_rated").then(d => d.results.map(mapMovie));
+  return apiFetch("/movie/top_rated").then(d => d.results.filter(notRuUk).map(mapMovie));
 }
 
 /** Wyszukuje filmy i seriale jednocześnie (/search/multi). */
@@ -231,13 +234,13 @@ export function fetchRecommendations(id, mediaType = "movie") {
 /** Top 10 trendujących filmów tygodnia. */
 export function fetchTrendingMovies() {
   return apiFetch("/trending/movie/week", "&region=PL")
-    .then(d => d.results.slice(0, 10).map(mapMovie));
+    .then(d => d.results.filter(notRuUk).slice(0, 10).map(mapMovie));
 }
 
 /** Top 10 trendujących seriali tygodnia. */
 export function fetchTrendingTV() {
   return apiFetch("/trending/tv/week")
-    .then(d => d.results.slice(0, 10).map(mapTVList));
+    .then(d => d.results.filter(notRuUk).slice(0, 10).map(mapTVList));
 }
 
 /** Nadchodzące premiery kinowe w Polsce — strony 1 i 2. */
@@ -250,6 +253,7 @@ export function fetchUpcoming() {
     return pages.flatMap(p => p.results ?? [])
       .filter(m => {
         if (!m.release_date || seen.has(m.id)) return false;
+        if (!notRuUk(m)) return false;
         seen.add(m.id);
         return true;
       })
@@ -271,6 +275,7 @@ export function fetchUpcomingCalendar() {
     return all
       .filter(m => {
         if (!m.release_date || seen.has(m.id)) return false;
+        if (!notRuUk(m)) return false;
         seen.add(m.id);
         return true;
       })
