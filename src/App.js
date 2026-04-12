@@ -15,6 +15,7 @@ import { SportCard } from "./components/SportCard";
 import { RankingCard } from "./components/RankingCard";
 import { AuthModal } from "./components/Auth";
 import { AdminPanel } from "./components/AdminPanel";
+import { fetchUpcomingSportsEvents } from "./services/sportsdb";
 
 const PLATFORM_PRICES = {
   "Netflix": "33 zł/msc",
@@ -511,6 +512,167 @@ function HeroBanner({ movies, index, setIndex, onOpen }) {
   );
 }
 
+function ratingColor(r) {
+  if (!r || r < 0.5) return "#2a2e42";
+  if (r >= 9.0) return "#2d7d46";
+  if (r >= 8.0) return "#4CAF50";
+  if (r >= 7.0) return "#8BC34A";
+  if (r >= 6.0) return "#c48a00";
+  if (r >= 5.0) return "#c46c00";
+  return "#c0293b";
+}
+
+const RATING_LEGEND = [
+  { label: "≥9.0", color: "#2d7d46" },
+  { label: "≥8.0", color: "#4CAF50" },
+  { label: "≥7.0", color: "#8BC34A" },
+  { label: "≥6.0", color: "#FFB547" },
+  { label: "≥5.0", color: "#FF9800" },
+  { label: "<5.0",  color: "#FF4D6A" },
+  { label: "brak",  color: "#2a2e42" },
+];
+
+function RatingsGrid({ seasonsList, ratingsMap, loading }) {
+  const [activeEp, setActiveEp] = useState(null);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "16px 0", color: t.tm, fontSize: 13 }}>
+        ⏳ Pobieranie ocen odcinków...
+      </div>
+    );
+  }
+  if (!ratingsMap || Object.keys(ratingsMap).length === 0) return null;
+
+  const seasons = seasonsList.map(s => s.number).filter(sn => ratingsMap[sn]);
+  if (seasons.length === 0) return null;
+  const maxEps = Math.max(...seasons.map(sn => (ratingsMap[sn] ?? []).length), 0);
+  if (maxEps === 0) return null;
+
+  // Cell size adapts to season count
+  const cellW = seasons.length > 12 ? 28 : seasons.length > 8 ? 32 : 36;
+  const cellH = 26;
+
+  return (
+    <div>
+      {/* Legenda */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {RATING_LEGEND.map(item => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 11, height: 11, borderRadius: 3, background: item.color, border: "1px solid rgba(255,255,255,0.12)" }} />
+            <span style={{ fontSize: 10, color: t.tm, fontWeight: 600 }}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela */}
+      <div style={{ overflowX: "auto", paddingBottom: 6 }}>
+        <table style={{ borderCollapse: "separate", borderSpacing: 3, minWidth: "max-content" }}>
+          <thead>
+            <tr>
+              <th style={{ width: 24, minWidth: 24, fontSize: 9, color: t.tm, textAlign: "center", fontWeight: 700, paddingBottom: 6 }}>
+                Ep
+              </th>
+              {seasons.map(sn => (
+                <th key={sn} style={{ width: cellW, fontSize: 11, color: t.a, textAlign: "center", fontWeight: 800, paddingBottom: 6 }}>
+                  S{sn}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: maxEps }, (_, i) => {
+              const epNum = i + 1;
+              return (
+                <tr key={epNum}>
+                  <td style={{ fontSize: 9, color: t.tm, textAlign: "center", fontWeight: 700, paddingRight: 4, verticalAlign: "middle" }}>
+                    {epNum}
+                  </td>
+                  {seasons.map(sn => {
+                    const eps = ratingsMap[sn] ?? [];
+                    const ep = eps.find(e => e.number === epNum);
+                    const hasEp = !!ep;
+                    const hasRating = ep && (ep.rating ?? 0) > 0.5;
+                    const bg = hasEp ? ratingColor(ep.rating) : "#1a1d2e";
+                    const isActive = activeEp && activeEp.sn === sn && activeEp.ep?.number === epNum;
+                    return (
+                      <td
+                        key={sn}
+                        onClick={() => {
+                          if (!hasEp) return;
+                          setActiveEp(isActive ? null : { sn, ep });
+                        }}
+                        title={hasEp ? ep.title : ""}
+                        style={{
+                          width: cellW, height: cellH,
+                          background: bg, borderRadius: 5,
+                          textAlign: "center", verticalAlign: "middle",
+                          cursor: hasEp ? "pointer" : "default",
+                          fontSize: 9, fontWeight: 800, color: "#fff",
+                          outline: isActive ? "2px solid #fff" : "none",
+                          outlineOffset: 1,
+                          transition: "opacity 0.1s",
+                          opacity: hasEp ? 1 : 0.3,
+                          userSelect: "none",
+                        }}
+                      >
+                        {hasRating ? ep.rating.toFixed(1) : ""}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tooltip odcinka */}
+      {activeEp?.ep && (
+        <div style={{
+          background: t.s, border: "1px solid " + t.ab,
+          borderRadius: 14, padding: "14px 16px", marginTop: 12,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: t.a, fontWeight: 800, marginBottom: 4 }}>
+                S{activeEp.sn} E{String(activeEp.ep.number).padStart(2, "0")}
+                {activeEp.ep.rating > 0 && (
+                  <span style={{
+                    marginLeft: 8, background: ratingColor(activeEp.ep.rating),
+                    padding: "2px 7px", borderRadius: 6, color: "#fff", fontSize: 10,
+                  }}>
+                    ⭐ {activeEp.ep.rating.toFixed(1)}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.tx, marginBottom: 6 }}>
+                {activeEp.ep.title}
+              </div>
+              {activeEp.ep.overview && (
+                <div style={{ fontSize: 12, color: t.tm, lineHeight: 1.55 }}>
+                  {activeEp.ep.overview.length > 200 ? activeEp.ep.overview.slice(0, 200) + "…" : activeEp.ep.overview}
+                </div>
+              )}
+              {activeEp.ep.airDate && (
+                <div style={{ fontSize: 11, color: t.tm, marginTop: 6 }}>📅 {activeEp.ep.airDate}</div>
+              )}
+            </div>
+            <button
+              onClick={() => setActiveEp(null)}
+              style={{
+                background: "none", border: "none", color: t.tm,
+                cursor: "pointer", fontSize: 18, padding: "0 0 0 8px", flexShrink: 0,
+              }}
+            >×</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
@@ -597,6 +759,15 @@ function App() {
   // Sport z Supabase
   const [sportsFromDB, setSportsFromDB] = useState(null);
 
+  // Mapa ocen serialu
+  const [ratingsMap, setRatingsMap] = useState(null);
+  const [ratingsMapLoading, setRatingsMapLoading] = useState(false);
+
+  // Live sport z TheSportsDB
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveLoaded, setLiveLoaded] = useState(false);
+
   // Premiery
   const [premieresMovies, setPremieresMovies] = useState([]);
   const [premieresLoading, setPremieresLoading] = useState(false);
@@ -680,6 +851,33 @@ function App() {
   useEffect(() => {
     fetchSportsEvents().then(data => { if (data) setSportsFromDB(data); }).catch(() => {});
   }, []);
+
+  // Pobierz oceny wszystkich odcinków serialu
+  useEffect(() => {
+    if (!selectedMovie || selectedMovie.mediaType !== "tv" || !selectedMovie.seasonsList?.length || ratingsMap !== null) return;
+    const seasons = selectedMovie.seasonsList.slice(0, 20).map(s => s.number);
+    setRatingsMapLoading(true);
+    Promise.all(
+      seasons.map(sn => fetchEpisodes(selectedMovie.id, sn).catch(() => []))
+    ).then(results => {
+      const map = {};
+      seasons.forEach((sn, i) => { map[sn] = results[i]; });
+      setRatingsMap(map);
+      setRatingsMapLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMovie?.id, selectedMovie?.seasonsList?.length]);
+
+  // Live sport z TheSportsDB
+  useEffect(() => {
+    if (screen !== "sports" || liveLoaded) return;
+    setLiveLoading(true);
+    fetchUpcomingSportsEvents()
+      .then(data => { setLiveEvents(data); setLiveLoaded(true); })
+      .catch(() => setLiveLoaded(true))
+      .finally(() => setLiveLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   // Ładuj premiery gdy użytkownik wchodzi na zakładkę
   useEffect(() => {
@@ -781,6 +979,8 @@ function App() {
     setTrailerKey(null);
     setSelectedSeason(null);
     setEpisodes([]);
+    setRatingsMap(null);
+    setRatingsMapLoading(false);
     setDetailLoading(true);
     setScreen("detail");
 
@@ -1440,6 +1640,24 @@ function App() {
             </div>
           )}
 
+          {/* Mapa ocen serialu */}
+          {m.mediaType === "tv" && m.seasonsList?.length > 0 && (ratingsMapLoading || (ratingsMap && Object.keys(ratingsMap).length > 0)) && (
+            <div style={{ marginBottom: 20 }}>
+              <SectionHeader>Mapa ocen odcinków</SectionHeader>
+              <div style={{
+                background: t.s, borderRadius: 18, border: "1px solid " + t.b,
+                padding: "14px 16px", overflowX: "auto",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+              }}>
+                <RatingsGrid
+                  seasonsList={m.seasonsList}
+                  ratingsMap={ratingsMap}
+                  loading={ratingsMapLoading}
+                />
+              </div>
+            </div>
+          )}
+
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>Opis</SectionHeader>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis}</p>
@@ -1657,7 +1875,62 @@ function App() {
             </button>
           ))}
         </div>
+        {/* Na żywo z TheSportsDB */}
+        <div style={{ padding: "0 20px", marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <SectionHeader>Na żywo z API · TheSportsDB</SectionHeader>
+            <button
+              onClick={() => { setLiveLoaded(false); setLiveEvents([]); setLiveLoading(true); fetchUpcomingSportsEvents().then(d => { setLiveEvents(d); setLiveLoaded(true); }).catch(() => setLiveLoaded(true)).finally(() => setLiveLoading(false)); }}
+              style={{ background: "none", border: "none", color: t.a, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}
+            >
+              Odśwież ↻
+            </button>
+          </div>
+          {liveLoading ? (
+            <div style={{ textAlign: "center", padding: "24px 0", color: t.tm, fontSize: 13 }}>
+              ⏳ Pobieranie wydarzeń...
+            </div>
+          ) : liveEvents.length === 0 ? (
+            <div style={{
+              background: t.s, borderRadius: 14, border: "1px solid " + t.b,
+              padding: "16px", textAlign: "center", color: t.tm, fontSize: 13,
+            }}>
+              Brak danych z TheSportsDB
+            </div>
+          ) : (
+            liveEvents.map(ev => (
+              <div key={ev.id} style={{
+                background: t.s, borderRadius: 16, border: "1px solid " + t.b,
+                padding: "12px 16px", marginBottom: 8,
+                display: "flex", alignItems: "center", gap: 12,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+              }}>
+                <div style={{
+                  width: 42, height: 42, borderRadius: 12, background: t.ad,
+                  border: "1px solid " + t.ab, display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: 20, flexShrink: 0,
+                }}>
+                  {ev.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: t.a, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 2 }}>
+                    {ev.event}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: t.tx, lineHeight: 1.3 }}>
+                    {ev.teams}
+                  </div>
+                  <div style={{ fontSize: 11, color: t.tm, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span>📅</span> {ev.date}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Ręczne wydarzenia */}
         <div style={{ padding: "0 20px" }}>
+          <SectionHeader>Wydarzenia ręczne</SectionHeader>
           {filteredSports.length > 0
             ? filteredSports.map(s => <SportCard key={s.id} sport={s} />)
             : (
