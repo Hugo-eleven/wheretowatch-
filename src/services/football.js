@@ -1,12 +1,12 @@
-const API_KEY = process.env.REACT_APP_FOOTBALL_API_KEY;
 const BASE_URL = "https://api.football-data.org/v4";
 
 function apiFetch(path) {
-  const headers = {};
-  if (API_KEY && API_KEY !== "placeholder") {
-    headers["X-Auth-Token"] = API_KEY;
-  }
-  return fetch(`${BASE_URL}${path}`, { headers }).then(res => {
+  const key = process.env.REACT_APP_FOOTBALL_API_KEY;
+  console.log("[Football] API key:", key ? `${key.slice(0, 6)}...` : "BRAK");
+  return fetch(`${BASE_URL}${path}`, {
+    headers: { "X-Auth-Token": key ?? "" },
+  }).then(res => {
+    console.log("[Football] Response status:", res.status, path);
     if (!res.ok) throw new Error(`Football API błąd ${res.status}`);
     return res.json();
   });
@@ -26,6 +26,7 @@ export async function fetchScheduledMatches() {
   const dateTo = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const fmt = d => d.toISOString().slice(0, 10);
   const data = await apiFetch(`/matches?status=SCHEDULED&dateFrom=${fmt(now)}&dateTo=${fmt(dateTo)}`);
+  console.log("[Football] Matches received:", data.matches?.length ?? 0);
   return (data.matches ?? []).slice(0, 30).map(m => ({
     id: m.id,
     competition: m.competition?.name ?? "Liga",

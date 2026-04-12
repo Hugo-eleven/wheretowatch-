@@ -859,12 +859,10 @@ function App() {
 
   // Ładuj mecze z football-data.org przy starcie
   useEffect(() => {
-    const key = process.env.REACT_APP_FOOTBALL_API_KEY;
-    if (!key || key === "placeholder") return;
     setFootballLoading(true);
     fetchScheduledMatches()
-      .then(matches => setFootballMatches(matches))
-      .catch(() => {})
+      .then(matches => { console.log("[App] Football matches:", matches.length); setFootballMatches(matches); })
+      .catch(err => console.error("[App] Football error:", err.message))
       .finally(() => setFootballLoading(false));
   }, []);
 
