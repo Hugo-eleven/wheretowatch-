@@ -249,3 +249,23 @@ export function fetchUpcoming() {
         .map(m => ({ ...mapMovie(m), releaseDate: m.release_date }))
     );
 }
+
+/** Pełny kalendarz premier — 3 strony TMDB (ok. 60 filmów). */
+export function fetchUpcomingCalendar() {
+  return Promise.all([
+    apiFetch("/movie/upcoming", "&region=PL&page=1"),
+    apiFetch("/movie/upcoming", "&region=PL&page=2"),
+    apiFetch("/movie/upcoming", "&region=PL&page=3"),
+  ]).then(pages => {
+    const seen = new Set();
+    const all = pages.flatMap(p => p.results ?? []);
+    return all
+      .filter(m => {
+        if (!m.release_date || seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      })
+      .sort((a, b) => a.release_date.localeCompare(b.release_date))
+      .map(m => ({ ...mapMovie(m), releaseDate: m.release_date, original_language: m.original_language }));
+  });
+}

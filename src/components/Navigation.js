@@ -1,6 +1,7 @@
 const NAV_ITEMS = [
   { id: "home", label: "Odkrywaj", emoji: "🏠" },
   { id: "search", label: "Szukaj", emoji: "🔍" },
+  { id: "premieres", label: "Premiery", emoji: "📅" },
   { id: "sports", label: "Sport", emoji: "⚽" },
   { id: "saved", label: "Lista", emoji: "❤️" },
 ];

@@ -4,16 +4,17 @@ import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sport
 import {
   fetchPopular, fetchTopRated, searchMulti,
   fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchRecommendations,
-  fetchTrendingMovies, fetchTrendingTV, fetchUpcoming,
+  fetchTrendingMovies, fetchTrendingTV, fetchUpcoming, fetchUpcomingCalendar,
   fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
-import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase } from "./services/supabase";
+import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase, fetchSportsEvents } from "./services/supabase";
 import { Navigation } from "./components/Navigation";
 import { MovieCard } from "./components/MovieCard";
 import { SportCard } from "./components/SportCard";
 import { RankingCard } from "./components/RankingCard";
 import { AuthModal } from "./components/Auth";
+import { AdminPanel } from "./components/AdminPanel";
 
 const PLATFORM_PRICES = {
   "Netflix": "33 zł/msc",
@@ -148,6 +149,97 @@ function daysUntil(dateStr) {
   return `za ${diff} dni`;
 }
 
+function groupPremieresByWeek(movies) {
+  const groups = {};
+  movies.forEach(m => {
+    const date = new Date(m.releaseDate);
+    const day = date.getDay();
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + (day === 0 ? -6 : 1 - day));
+    monday.setHours(0, 0, 0, 0);
+    const key = monday.toISOString().slice(0, 10);
+    if (!groups[key]) groups[key] = { monday, movies: [] };
+    groups[key].movies.push(m);
+  });
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const curDay = today.getDay();
+  const thisMonday = new Date(today);
+  thisMonday.setDate(today.getDate() + (curDay === 0 ? -6 : 1 - curDay));
+
+  return Object.values(groups)
+    .sort((a, b) => a.monday - b.monday)
+    .map(({ monday, movies: ms }) => {
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      const fmt = d => d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+      const range = `${fmt(monday)} – ${fmt(sunday)}`;
+      const diffWeeks = Math.round((monday - thisMonday) / (7 * 86400000));
+      let label;
+      if (diffWeeks === 0) label = `Ten tydzień · ${range}`;
+      else if (diffWeeks === 1) label = `Przyszły tydzień · ${range}`;
+      else label = `Za ${diffWeeks} ${diffWeeks < 5 ? "tygodnie" : "tygodni"} · ${range}`;
+      return { label, movies: ms };
+    });
+}
+
+function PremiereCard({ movie, onOpen }) {
+  const days = daysUntil(movie.releaseDate);
+  const dateFormatted = movie.releaseDate
+    ? new Date(movie.releaseDate).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+  return (
+    <div
+      onClick={() => onOpen(movie)}
+      className="compact-card-hover"
+      style={{
+        display: "flex", gap: 14, alignItems: "flex-start",
+        background: t.s, borderRadius: 16, border: "1px solid " + t.b,
+        padding: 12, marginBottom: 10, cursor: "pointer",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+      }}
+    >
+      <div style={{
+        width: 64, height: 90, borderRadius: 10, overflow: "hidden",
+        background: t.ad, flexShrink: 0,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+      }}>
+        {movie.poster ? (
+          <img src={movie.poster} alt="" loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 24 }}>🎬</div>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: t.tx, lineHeight: 1.3, marginBottom: 4 }}>
+          {movie.title}
+        </div>
+        <div style={{ fontSize: 12, color: t.tm, marginBottom: 6 }}>
+          {[movie.genre, movie.year].filter(Boolean).join(" · ")}
+        </div>
+        {dateFormatted && (
+          <div style={{ fontSize: 11, color: t.tm, display: "flex", alignItems: "center", gap: 4 }}>
+            <span>📅</span> {dateFormatted}
+          </div>
+        )}
+        {movie.imdb > 0 && (
+          <div style={{ fontSize: 11, color: t.w, marginTop: 4 }}>⭐ {movie.imdb}</div>
+        )}
+      </div>
+      {days && (
+        <div style={{
+          flexShrink: 0, background: t.ad, border: "1px solid " + t.ab,
+          borderRadius: 10, padding: "5px 10px",
+          fontSize: 11, fontWeight: 800, color: t.a, textAlign: "center",
+          whiteSpace: "nowrap",
+        }}>
+          {days}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TopTenCard({ movie, rank, onOpen }) {
   return (
     <div
@@ -232,7 +324,7 @@ function UpcomingCard({ movie, onOpen }) {
   );
 }
 
-function UserAvatar({ user, onSignOut, onShowAuth }) {
+function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
   const [open, setOpen] = useState(false);
   if (!user) {
     return (
@@ -284,6 +376,20 @@ function UserAvatar({ user, onSignOut, onShowAuth }) {
             }}>
               {user.email}
             </div>
+            {isAdmin && (
+              <button
+                onClick={() => { onAdmin(); setOpen(false); }}
+                style={{
+                  width: "100%", textAlign: "left", background: "none",
+                  border: "none", padding: "11px 16px",
+                  fontSize: 13, color: t.a, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                  borderBottom: "1px solid " + t.b,
+                }}
+              >
+                🔧 Panel admina
+              </button>
+            )}
             <button
               onClick={() => setOpen(false)}
               style={{
@@ -488,6 +594,14 @@ function App() {
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
 
+  // Sport z Supabase
+  const [sportsFromDB, setSportsFromDB] = useState(null);
+
+  // Premiery
+  const [premieresMovies, setPremieresMovies] = useState([]);
+  const [premieresLoading, setPremieresLoading] = useState(false);
+  const [premieresLoaded, setPremieresLoaded] = useState(false);
+
   // Cache szczegółów filmów spoza popularMovies/searchResults
   const [savedMoviesCache, setSavedMoviesCache] = useState({});
   const [savedCacheLoading, setSavedCacheLoading] = useState(false);
@@ -561,6 +675,22 @@ function App() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Ładuj sport z Supabase przy starcie
+  useEffect(() => {
+    fetchSportsEvents().then(data => { if (data) setSportsFromDB(data); }).catch(() => {});
+  }, []);
+
+  // Ładuj premiery gdy użytkownik wchodzi na zakładkę
+  useEffect(() => {
+    if (screen !== "premieres" || premieresLoaded) return;
+    setPremieresLoading(true);
+    fetchUpcomingCalendar()
+      .then(data => { setPremieresMovies(data); setPremieresLoaded(true); })
+      .catch(() => {})
+      .finally(() => setPremieresLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   // Auto-rotacja hero banner co 6 sekund
   useEffect(() => {
@@ -739,6 +869,13 @@ function App() {
 
   const isSaved = id => savedMovies.includes(id);
 
+  // Sport: Supabase jeśli załadowany, fallback na SPORTS_EVENTS z pliku
+  const effectiveSports = sportsFromDB ?? SPORTS_EVENTS;
+
+  // Admin
+  const adminEmail = process.env.REACT_APP_ADMIN_EMAIL;
+  const isAdmin = !!(user && adminEmail && user.email === adminEmail);
+
   // ====== SPLASH ======
   if (!splashDone) {
     return (
@@ -760,6 +897,8 @@ function App() {
               user={user}
               onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
               onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
             />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
@@ -894,7 +1033,7 @@ function App() {
                   Więcej →
                 </button>
               </div>
-              {SPORTS_EVENTS.slice(0, 3).map(s => <SportCard key={s.id} sport={s} />)}
+              {effectiveSports.slice(0, 3).map(s => <SportCard key={s.id} sport={s} />)}
             </div>
           </>
         )}
@@ -930,6 +1069,8 @@ function App() {
               user={user}
               onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
               onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
             />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
@@ -1486,7 +1627,7 @@ function App() {
 
   // ====== SPORTS ======
   if (screen === "sports") {
-    const filteredSports = filterByDiscipline(SPORTS_EVENTS, sportsDiscipline);
+    const filteredSports = filterByDiscipline(effectiveSports, sportsDiscipline);
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1528,6 +1669,90 @@ function App() {
           }
         </div>
         <Navigation screen={screen} setScreen={setScreen} />
+      </div>
+    );
+  }
+
+  // ====== PREMIERES ======
+  if (screen === "premieres") {
+    const grouped = groupPremieresByWeek(premieresMovies);
+    return (
+      <div style={WRAP}>
+        <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Logo />
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        </div>
+        <div style={{ padding: "8px 20px 16px" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 Kalendarz premier</h2>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Nadchodzące premiery kinowe w Polsce</p>
+        </div>
+
+        {premieresLoading ? (
+          <div style={{ padding: "0 20px" }}>
+            {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : grouped.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: t.tm }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>📅</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>Brak danych</div>
+            <div style={{ fontSize: 13 }}>Spróbuj ponownie za chwilę</div>
+          </div>
+        ) : (
+          <div style={{ padding: "0 20px" }}>
+            {grouped.map(({ label, movies: ms }) => (
+              <div key={label} style={{ marginBottom: 28 }}>
+                <SectionHeader>{label}</SectionHeader>
+                {ms.map(m => <PremiereCard key={m.id} movie={m} onOpen={openMovie} />)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Navigation screen={screen} setScreen={setScreen} />
+      </div>
+    );
+  }
+
+  // ====== ADMIN ======
+  if (screen === "admin") {
+    if (!isAdmin) {
+      return (
+        <div style={WRAP}>
+          <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Logo />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
+          <div style={{ textAlign: "center", padding: "80px 20px", color: t.tm }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 6 }}>Brak dostępu</div>
+            <div style={{ fontSize: 13, marginBottom: 24 }}>Ta strona wymaga uprawnień administratora.</div>
+            <button
+              onClick={() => setScreen("home")}
+              style={{
+                background: t.a, border: "none", borderRadius: 12,
+                color: "#0B0F1A", fontSize: 14, fontWeight: 700,
+                cursor: "pointer", padding: "12px 28px",
+              }}
+            >
+              Wróć do strony głównej
+            </button>
+          </div>
+          <Navigation screen="home" setScreen={setScreen} />
+        </div>
+      );
+    }
+    return (
+      <div style={WRAP}>
+        <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Logo />
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        </div>
+        <AdminPanel
+          sportsEvents={effectiveSports}
+          onEventAdded={event => setSportsFromDB(prev => [...(prev ?? SPORTS_EVENTS), event])}
+          onEventDeleted={id => setSportsFromDB(prev => (prev ?? SPORTS_EVENTS).filter(e => e.id !== id))}
+          onBack={() => setScreen("home")}
+        />
       </div>
     );
   }
