@@ -1,16 +1,7 @@
-const BASE_URL = "https://api.football-data.org/v4";
-
-function apiFetch(path) {
-  const key = process.env.REACT_APP_FOOTBALL_API_KEY;
-  console.log("[Football] API key:", key ? `${key.slice(0, 6)}...` : "BRAK");
-  return fetch(`${BASE_URL}${path}`, {
-    headers: { "X-Auth-Token": key ?? "" },
-  }).then(res => {
-    console.log("[Football] Response status:", res.status, path);
-    if (!res.ok) throw new Error(`Football API błąd ${res.status}`);
-    return res.json();
-  });
-}
+const BASE =
+  window.location.hostname === "localhost"
+    ? "https://wheretowatch-theta.vercel.app/api/football"
+    : "/api/football";
 
 function formatMatchDate(utcDate) {
   if (!utcDate) return "—";
@@ -20,13 +11,21 @@ function formatMatchDate(utcDate) {
   });
 }
 
-/** Mecze zaplanowane w najbliższych 7 dniach. */
+/** Mecze zaplanowane w najbliższych 7 dniach via Vercel proxy. */
 export async function fetchScheduledMatches() {
   const now = new Date();
   const dateTo = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const fmt = d => d.toISOString().slice(0, 10);
-  const data = await apiFetch(`/matches?status=SCHEDULED&dateFrom=${fmt(now)}&dateTo=${fmt(dateTo)}`);
+  const endpoint = `matches?status=SCHEDULED&dateFrom=${fmt(now)}&dateTo=${fmt(dateTo)}`;
+  const url = `${BASE}?endpoint=${encodeURIComponent(endpoint)}`;
+
+  console.log("[Football] Fetching via proxy:", url);
+  const res = await fetch(url);
+  console.log("[Football] Proxy response status:", res.status);
+  if (!res.ok) throw new Error(`Proxy błąd ${res.status}`);
+  const data = await res.json();
   console.log("[Football] Matches received:", data.matches?.length ?? 0);
+
   return (data.matches ?? []).slice(0, 30).map(m => ({
     id: m.id,
     competition: m.competition?.name ?? "Liga",

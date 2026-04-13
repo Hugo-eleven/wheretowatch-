@@ -1961,14 +1961,14 @@ function App() {
             </div>
           )}
 
-          {/* Ręczne wydarzenia */}
+          {/* Wydarzenia ręczne / planowane */}
           {filteredSports.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <SectionHeader>Wydarzenia ręczne</SectionHeader>
+              {showFootball && <SectionHeader>Wydarzenia planowane</SectionHeader>}
               {filteredSports.map(s => <SportCard key={s.id} sport={s} />)}
             </div>
           )}
-          {filteredSports.length === 0 && !showFootball && (
+          {filteredSports.length === 0 && !showFootball && !footballLoading && (
             <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
               <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>

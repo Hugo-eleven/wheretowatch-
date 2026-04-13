@@ -5,6 +5,8 @@ export const DISCIPLINES = [
   { id: "f1",         label: "F1",           icon: "🏎️" },
   { id: "basketball", label: "Koszykówka",   icon: "🏀" },
   { id: "volleyball", label: "Siatkówka",    icon: "🏐" },
+  { id: "mma",        label: "MMA/KSW",      icon: "🥊" },
+  { id: "speedway",   label: "Żużel",        icon: "🏍️" },
 ];
 
 // Ceny aktualne na kwiecień 2026
@@ -13,10 +15,12 @@ const P = {
   POLSAT:   { name: "Polsat Sport",  price: "30 zł/msc" },
   TVP:      { name: "TVP Sport",     price: "Za darmo"  },
   TVP1:     { name: "TVP 1",         price: "Za darmo"  },
+  TVP2:     { name: "TVP 2",         price: "Za darmo"  },
   EUROSPORT:{ name: "Eurosport",     price: "29.99 zł/msc" },
   MAX:      { name: "Max",           price: "29.99 zł/msc" },
   VIAPLAY:  { name: "Viaplay",       price: "34 zł/msc" },
   ELEVEN:   { name: "Eleven Sports", price: "25 zł/msc" },
+  POLSAT_BOX: { name: "Polsat Box",  price: "55 zł/msc" },
 };
 
 export const SPORTS_EVENTS = [
@@ -105,6 +109,41 @@ export const SPORTS_EVENTS = [
     date: "30 maj 2026, 21:00",
     platforms: [P.CANAL, P.TVP1],
   },
+  {
+    id: 50, discipline: "football", icon: "⚽",
+    event: "Ekstraklasa — 32. kolejka",
+    teams: "Legia Warszawa vs Raków Częstochowa",
+    date: "3 maj 2026, 17:30",
+    platforms: [P.CANAL],
+  },
+  {
+    id: 51, discipline: "football", icon: "⚽",
+    event: "Ekstraklasa — Playoff o mistrzostwo",
+    teams: "Lech Poznań vs Legia Warszawa",
+    date: "17 maj 2026, 18:00",
+    platforms: [P.CANAL],
+  },
+  {
+    id: 52, discipline: "football", icon: "⚽",
+    event: "Liga Konferencji — Finał",
+    teams: "Finał w Wrocławiu",
+    date: "28 maj 2026, 21:00",
+    platforms: [P.POLSAT, P.TVP],
+  },
+  {
+    id: 53, discipline: "football", icon: "⚽",
+    event: "MŚ 2026 — Polska vs grupowy rywal",
+    teams: "Polska · faza grupowa",
+    date: "14 cze 2026, 21:00",
+    platforms: [P.TVP1, P.TVP2],
+  },
+  {
+    id: 54, discipline: "football", icon: "⚽",
+    event: "MŚ 2026 — Polska · 2. mecz grupowy",
+    teams: "Polska · faza grupowa",
+    date: "19 cze 2026, 21:00",
+    platforms: [P.TVP1, P.TVP2],
+  },
   // ── FORMUŁA 1 ───────────────────────────────────────────────
   {
     id: 13, discipline: "f1", icon: "🏎️",
@@ -132,6 +171,27 @@ export const SPORTS_EVENTS = [
     event: "GP Kanady — Wyścig",
     teams: "Formula 1 · Circuit Gilles Villeneuve",
     date: "15 cze 2026, 20:00",
+    platforms: [P.VIAPLAY],
+  },
+  {
+    id: 55, discipline: "f1", icon: "🏎️",
+    event: "GP Bahrajnu — Wyścig",
+    teams: "Formula 1 · Bahrain International Circuit",
+    date: "20 kwi 2026, 17:00",
+    platforms: [P.VIAPLAY],
+  },
+  {
+    id: 56, discipline: "f1", icon: "🏎️",
+    event: "GP Arabii Saudyjskiej — Wyścig",
+    teams: "Formula 1 · Jeddah Corniche Circuit",
+    date: "26 kwi 2026, 20:00",
+    platforms: [P.VIAPLAY],
+  },
+  {
+    id: 57, discipline: "f1", icon: "🏎️",
+    event: "GP Hiszpanii — Wyścig",
+    teams: "Formula 1 · Circuit de Barcelona-Catalunya",
+    date: "1 cze 2026, 15:00",
     platforms: [P.VIAPLAY],
   },
   // ── TENIS ───────────────────────────────────────────────────
@@ -170,6 +230,20 @@ export const SPORTS_EVENTS = [
     date: "13 lip 2026, 14:00",
     platforms: [P.EUROSPORT],
   },
+  {
+    id: 58, discipline: "tennis", icon: "🎾",
+    event: "Mutua Madrid Open — 1/2 finału kobiet",
+    teams: "Iga Świątek i rywalki",
+    date: "1 maj 2026, 13:00",
+    platforms: [P.EUROSPORT],
+  },
+  {
+    id: 59, discipline: "tennis", icon: "🎾",
+    event: "Internazionali BNL d'Italia — Finał",
+    teams: "Turniej w Rzymie",
+    date: "17 maj 2026, 14:00",
+    platforms: [P.EUROSPORT],
+  },
   // ── KOSZYKÓWKA ──────────────────────────────────────────────
   {
     id: 22, discipline: "basketball", icon: "🏀",
@@ -192,6 +266,20 @@ export const SPORTS_EVENTS = [
     date: "25 maj 2026, 18:00",
     platforms: [P.ELEVEN],
   },
+  {
+    id: 60, discipline: "basketball", icon: "🏀",
+    event: "NBA Playoffs — Konferencja Wschodnia — Finał",
+    teams: "Boston Celtics vs Indiana Pacers",
+    date: "20 maj 2026, 21:30",
+    platforms: [P.MAX, P.ELEVEN],
+  },
+  {
+    id: 61, discipline: "basketball", icon: "🏀",
+    event: "Finał NBA — Gra 1",
+    teams: "Finał NBA 2026",
+    date: "4 cze 2026, 21:30",
+    platforms: [P.MAX, P.ELEVEN],
+  },
   // ── SIATKÓWKA ───────────────────────────────────────────────
   {
     id: 25, discipline: "volleyball", icon: "🏐",
@@ -213,6 +301,92 @@ export const SPORTS_EVENTS = [
     teams: "Polska vs Stany Zjednoczone",
     date: "12 cze 2026, 20:00",
     platforms: [P.POLSAT, P.TVP],
+  },
+  {
+    id: 62, discipline: "volleyball", icon: "🏐",
+    event: "PlusLiga — Finał (mecz 3)",
+    teams: "Jastrzębski Węgiel vs ZAKSA Kędzierzyn",
+    date: "20 kwi 2026, 18:00",
+    platforms: [P.POLSAT, P.TVP],
+  },
+  {
+    id: 63, discipline: "volleyball", icon: "🏐",
+    event: "Liga Narodów — Polska vs Włochy",
+    teams: "Polska vs Włochy",
+    date: "20 cze 2026, 20:00",
+    platforms: [P.POLSAT],
+  },
+  // ── MMA / KSW ───────────────────────────────────────────────
+  {
+    id: 70, discipline: "mma", icon: "🥊",
+    event: "KSW 100 — Gala jubileuszowa",
+    teams: "Karta główna: Materla vs Khalidov",
+    date: "26 kwi 2026, 20:00",
+    platforms: [P.POLSAT_BOX],
+  },
+  {
+    id: 71, discipline: "mma", icon: "🥊",
+    event: "UFC Fight Night — Europa",
+    teams: "Turniej UFC · London O2 Arena",
+    date: "2 maj 2026, 22:00",
+    platforms: [P.MAX],
+  },
+  {
+    id: 72, discipline: "mma", icon: "🥊",
+    event: "KSW 101",
+    teams: "Karta główna",
+    date: "23 maj 2026, 20:00",
+    platforms: [P.POLSAT_BOX],
+  },
+  {
+    id: 73, discipline: "mma", icon: "🥊",
+    event: "UFC 315 — Karta główna",
+    teams: "Turniej UFC · Las Vegas",
+    date: "6 cze 2026, 03:00",
+    platforms: [P.MAX],
+  },
+  {
+    id: 74, discipline: "mma", icon: "🥊",
+    event: "KSW 102 — Gala letnia",
+    teams: "Karta główna",
+    date: "27 cze 2026, 20:00",
+    platforms: [P.POLSAT_BOX],
+  },
+  // ── ŻUŻEL ───────────────────────────────────────────────────
+  {
+    id: 80, discipline: "speedway", icon: "🏍️",
+    event: "PGE Ekstraliga — 1. runda",
+    teams: "Falubaz Zielona Góra vs Motor Lublin",
+    date: "19 kwi 2026, 16:00",
+    platforms: [P.TVP, P.POLSAT],
+  },
+  {
+    id: 81, discipline: "speedway", icon: "🏍️",
+    event: "PGE Ekstraliga — 1. runda",
+    teams: "Betard Sparta Wrocław vs Włókniarz Częstochowa",
+    date: "19 kwi 2026, 18:00",
+    platforms: [P.TVP, P.POLSAT],
+  },
+  {
+    id: 82, discipline: "speedway", icon: "🏍️",
+    event: "SGP — Grand Prix Polski",
+    teams: "Bartosz Zmarzlik i czołowi zawodnicy świata",
+    date: "16 maj 2026, 19:00",
+    platforms: [P.TVP, P.POLSAT],
+  },
+  {
+    id: 83, discipline: "speedway", icon: "🏍️",
+    event: "PGE Ekstraliga — 4. runda",
+    teams: "Motor Lublin vs Betard Sparta Wrocław",
+    date: "7 cze 2026, 17:00",
+    platforms: [P.TVP, P.POLSAT],
+  },
+  {
+    id: 84, discipline: "speedway", icon: "🏍️",
+    event: "SGP — Grand Prix Skandynawii",
+    teams: "Zmarzlik, Dudek, Lindgren i inni",
+    date: "20 cze 2026, 19:00",
+    platforms: [P.TVP, P.POLSAT],
   },
 ];
 
