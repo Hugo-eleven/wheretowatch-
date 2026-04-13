@@ -1,35 +1,49 @@
-const BASE =
-  window.location.hostname === "localhost"
-    ? "https://wheretowatch-theta.vercel.app/api/football"
-    : "/api/football";
+const IS_LOCAL = window.location.hostname === "localhost";
+const API_KEY = process.env.REACT_APP_FOOTBALL_API_KEY;
+const FOOTBALL_BASE = "https://api.football-data.org/v4";
 
-/** Zamienia utcDate na datę lokalną (Warsaw) w formacie YYYY-MM-DD */
+function apiFetch(path) {
+  if (IS_LOCAL) {
+    // Localhost: bezpośrednio przez corsproxy.io (omija CORS)
+    const target = encodeURIComponent(`${FOOTBALL_BASE}/${path}`);
+    const url = `https://corsproxy.io/?url=${target}`;
+    console.log("[Football] corsproxy URL:", url);
+    return fetch(url, {
+      headers: { "X-Auth-Token": API_KEY ?? "" },
+    }).then(res => {
+      console.log("[Football] Status:", res.status);
+      if (!res.ok) throw new Error(`Football API błąd ${res.status}`);
+      return res.json();
+    });
+  } else {
+    // Produkcja: Vercel serverless proxy
+    const url = `/api/football?endpoint=${encodeURIComponent(path)}`;
+    console.log("[Football] Vercel proxy URL:", url);
+    return fetch(url).then(res => {
+      console.log("[Football] Status:", res.status);
+      if (!res.ok) throw new Error(`Proxy błąd ${res.status}`);
+      return res.json();
+    });
+  }
+}
+
 function toDayKey(utcDate) {
   return new Date(utcDate).toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
 }
 
-/** Zamienia utcDate na godzinę HH:MM (Warsaw) */
 function toTime(utcDate) {
   return new Date(utcDate).toLocaleTimeString("pl-PL", {
     hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw",
   });
 }
 
-/** Mecze zaplanowane w najbliższych 14 dniach via Vercel proxy. */
 export async function fetchScheduledMatches() {
   const now = new Date();
   const dateTo = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   const fmt = d => d.toISOString().slice(0, 10);
-  const endpoint = `matches?status=SCHEDULED&dateFrom=${fmt(now)}&dateTo=${fmt(dateTo)}`;
-  const url = `${BASE}?endpoint=${encodeURIComponent(endpoint)}`;
-
-  console.log("[Football] Fetching:", url);
-  const res = await fetch(url);
-  console.log("[Football] Status:", res.status);
-  if (!res.ok) throw new Error(`Proxy błąd ${res.status}`);
-  const data = await res.json();
-  console.log("[Football] Matches:", data.matches?.length ?? 0);
-
+  const path = `matches?status=SCHEDULED&dateFrom=${fmt(now)}&dateTo=${fmt(dateTo)}`;
+  const data = await apiFetch(path);
+  console.log("[Football] Matches received:", data.matches?.length ?? 0);
   return (data.matches ?? []).map(m => ({
     id: m.id,
     competition: m.competition?.name ?? "Liga",
@@ -47,20 +61,19 @@ export async function fetchScheduledMatches() {
 const PL_DAYS = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
 const PL_MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
 
-/** Zwraca etykietę dnia: "Dziś - 13 kwi", "Jutro - 14 kwi", "Środa - 15 kwi" */
 export function dayLabel(dayKey) {
-  const todayKey = toDayKey(new Date().toISOString());
+  const todayKey = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
   const [y, mo, d] = dayKey.split("-").map(Number);
   const date = new Date(y, mo - 1, d);
-  const day = `${d} ${PL_MONTHS[mo - 1]}`;
-  if (dayKey === todayKey) return `Dziś · ${day}`;
-  const [ty, tm, td] = todayKey.split("-").map(Number);
-  const tomorrow = new Date(ty, tm - 1, td + 1);
-  if (date.toDateString() === tomorrow.toDateString()) return `Jutro · ${day}`;
-  return `${PL_DAYS[date.getDay()]} · ${day}`;
+  const dayStr = `${d} ${PL_MONTHS[mo - 1]}`;
+  if (dayKey === todayKey) return `Dziś · ${dayStr}`;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = tomorrow.toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
+  if (dayKey === tomorrowKey) return `Jutro · ${dayStr}`;
+  return `${PL_DAYS[date.getDay()]} · ${dayStr}`;
 }
 
-/** Grupuje mecze: { dayKey → { competition → { emblem, matches[] } } } */
 export function groupMatchesByDayAndLeague(matches) {
   const result = {};
   for (const m of matches) {
