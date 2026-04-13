@@ -8,7 +8,7 @@ import {
   fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
-import { fetchScheduledMatches } from "./services/football";
+import { fetchScheduledMatches, groupMatchesByDayAndLeague, dayLabel } from "./services/football";
 import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase, fetchSportsEvents } from "./services/supabase";
 import { Navigation } from "./components/Navigation";
 import { MovieCard } from "./components/MovieCard";
@@ -1922,44 +1922,118 @@ function App() {
         </div>
 
         <div style={{ padding: "0 20px" }}>
-          {/* Nadchodzące mecze z football-data.org */}
-          {showFootball && footballMatches.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SectionHeader>Nadchodzące mecze</SectionHeader>
-              {footballMatches.map(m => (
-                <div
-                  key={m.id}
-                  style={{
-                    background: t.s, border: "1px solid " + t.b,
-                    borderRadius: 14, padding: "12px 16px", marginBottom: 8,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: t.a, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
-                    ⚽ {m.competition}{m.area ? ` · ${m.area}` : ""}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: t.tx, marginBottom: 4 }}>
-                    {m.homeTeam} <span style={{ color: t.tm, fontWeight: 400 }}>vs</span> {m.awayTeam}
-                  </div>
-                  <div style={{ fontSize: 12, color: t.tm }}>
-                    📅 {m.dateFormatted}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Nadchodzące mecze z football-data.org — pogrupowane po dniach i ligach */}
           {showFootball && footballLoading && (
             <div style={{ marginBottom: 24 }}>
               <SectionHeader>Nadchodzące mecze</SectionHeader>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
-                  <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "50%", marginBottom: 8 }} />
-                  <div className="skeleton" style={{ height: 14, borderRadius: 4, marginBottom: 6 }} />
-                  <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%" }} />
+              {[...Array(4)].map((_, i) => (
+                <div key={i} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, padding: "10px 14px", marginBottom: 6 }}>
+                  <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%", marginBottom: 8 }} />
+                  <div className="skeleton" style={{ height: 13, borderRadius: 4, marginBottom: 5 }} />
+                  <div className="skeleton" style={{ height: 13, borderRadius: 4, width: "80%" }} />
                 </div>
               ))}
             </div>
           )}
+          {showFootball && !footballLoading && footballMatches.length > 0 && (() => {
+            const grouped = groupMatchesByDayAndLeague(footballMatches);
+            const days = Object.keys(grouped).sort();
+            return (
+              <div style={{ marginBottom: 24 }}>
+                <SectionHeader>Nadchodzące mecze</SectionHeader>
+                {days.map(day => (
+                  <div key={day} style={{ marginBottom: 20 }}>
+                    {/* Nagłówek dnia */}
+                    <div style={{
+                      fontSize: 13, fontWeight: 800, color: t.tx,
+                      padding: "6px 0 8px",
+                      borderBottom: "1px solid " + t.b,
+                      marginBottom: 10,
+                    }}>
+                      📅 {dayLabel(day)}
+                    </div>
+                    {/* Ligi */}
+                    {Object.entries(grouped[day]).map(([league, { emblem, matches: lMatches }]) => (
+                      <div key={league} style={{ marginBottom: 12 }}>
+                        {/* Nagłówek ligi */}
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          marginBottom: 6, paddingLeft: 2,
+                        }}>
+                          {emblem && (
+                            <img src={emblem} alt="" width={18} height={18}
+                              style={{ objectFit: "contain", flexShrink: 0 }}
+                              onError={e => { e.target.style.display = "none"; }}
+                            />
+                          )}
+                          <span style={{ fontSize: 11, fontWeight: 700, color: t.a, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                            {league}
+                          </span>
+                        </div>
+                        {/* Mecze */}
+                        <div style={{
+                          background: t.s, border: "1px solid " + t.b,
+                          borderRadius: 12, overflow: "hidden",
+                        }}>
+                          {lMatches.map((m, idx) => (
+                            <div
+                              key={m.id}
+                              style={{
+                                display: "flex", alignItems: "center",
+                                padding: "9px 12px",
+                                borderBottom: idx < lMatches.length - 1 ? "1px solid " + t.b : "none",
+                              }}
+                            >
+                              {/* Drużyna domowa */}
+                              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                                {m.homeTeamCrest && (
+                                  <img src={m.homeTeamCrest} alt="" width={20} height={20}
+                                    style={{ objectFit: "contain", flexShrink: 0 }}
+                                    onError={e => { e.target.style.display = "none"; }}
+                                  />
+                                )}
+                                <span style={{
+                                  fontSize: 13, fontWeight: 700, color: t.tx,
+                                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                                }}>
+                                  {m.homeTeam}
+                                </span>
+                              </div>
+                              {/* VS + godzina */}
+                              <div style={{
+                                flexShrink: 0, textAlign: "center",
+                                padding: "0 10px",
+                                fontSize: 11, color: t.tm, fontWeight: 600,
+                              }}>
+                                <div style={{ fontSize: 9, color: t.tm, marginBottom: 1 }}>vs</div>
+                                <div style={{ fontSize: 12, fontWeight: 800, color: t.a }}>{m.time}</div>
+                              </div>
+                              {/* Drużyna gości */}
+                              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end", minWidth: 0 }}>
+                                <span style={{
+                                  fontSize: 13, fontWeight: 700, color: t.tx,
+                                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                                  textAlign: "right",
+                                }}>
+                                  {m.awayTeam}
+                                </span>
+                                {m.awayTeamCrest && (
+                                  <img src={m.awayTeamCrest} alt="" width={20} height={20}
+                                    style={{ objectFit: "contain", flexShrink: 0 }}
+                                    onError={e => { e.target.style.display = "none"; }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Wydarzenia ręczne / planowane */}
           {filteredSports.length > 0 && (
