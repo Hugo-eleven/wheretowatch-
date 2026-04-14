@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(node --input-type=module)",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx react-scripts:*)",
+      "Bash(cmd:*)",
+      "Bash(pkill -f \"react-scripts\")",
+      "Bash(npm start:*)"
     ]
   }
 }

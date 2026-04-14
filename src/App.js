@@ -6,8 +6,10 @@ import {
   fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchRecommendations,
   fetchTrendingMovies, fetchTrendingTV, fetchUpcoming, fetchUpcomingCalendar,
   fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
-  fetchGenres, discoverMovies,
+  fetchGenres, discoverMovies, setTMDBLocale,
 } from "./services/tmdb";
+import { useLanguage } from "./context/LanguageContext";
+import { LANGUAGES, REGIONS } from "./config/locales";
 import { fetchOMDbRatings } from "./services/omdb";
 import { fetchScheduledMatches } from "./services/football";
 import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase, fetchSportsEvents } from "./services/supabase";
@@ -91,6 +93,42 @@ function ThemeToggle({ darkMode, toggle }) {
     >
       {darkMode ? "☀️" : "🌙"}
     </button>
+  );
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 520);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 520px)");
+    const handler = e => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
+function LocaleSelector({ language, region, setLanguage, setRegion }) {
+  const isMobile = useIsMobile();
+  const SELECT_STYLE = {
+    background: t.s, border: "1px solid " + t.b,
+    color: t.tx, borderRadius: 8, fontSize: 13,
+    padding: "4px 4px", cursor: "pointer", outline: "none",
+    fontFamily: "inherit", maxWidth: isMobile ? 38 : 130,
+    overflow: "hidden",
+  };
+  return (
+    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+      <select value={language} onChange={e => setLanguage(e.target.value)} style={SELECT_STYLE} title="Język">
+        {LANGUAGES.map(l => (
+          <option key={l.code} value={l.code}>{isMobile ? l.flag : `${l.flag} ${l.name}`}</option>
+        ))}
+      </select>
+      <select value={region} onChange={e => setRegion(e.target.value)} style={SELECT_STYLE} title="Region">
+        {REGIONS.map(r => (
+          <option key={r.code} value={r.code}>{isMobile ? r.flag : `${r.flag} ${r.name}`}</option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -897,6 +935,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 }
 
 function App() {
+  const { language, region, setLanguage, setRegion } = useLanguage();
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
 
@@ -1038,8 +1077,11 @@ function App() {
     return () => { if (document.body.contains(el)) document.body.removeChild(el); };
   }, [loginToast]);
 
-  // Ładuj wszystkie dane startowe
+  // Ładuj wszystkie dane startowe — re-fetchuj przy zmianie języka/regionu
   useEffect(() => {
+    setTMDBLocale(language, region);
+    setHomeLoading(true);
+    setHomeError(null);
     Promise.all([
       fetchPopular(),
       fetchTopRated(),
@@ -1057,7 +1099,8 @@ function App() {
       setHomeError(err.message);
       setHomeLoading(false);
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, region]);
 
   // Supabase auth
   useEffect(() => {
@@ -1394,6 +1437,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -1590,6 +1634,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -1789,6 +1834,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2170,7 +2216,9 @@ function App() {
 
           {/* Gdzie obejrzeć */}
           <div style={{ marginBottom: 20 }}>
-            <SectionHeader>Gdzie obejrzeć w Polsce</SectionHeader>
+            <SectionHeader>
+              Gdzie obejrzeć {REGIONS.find(r => r.code === region)?.flag ?? ""} {REGIONS.find(r => r.code === region)?.name ?? region}
+            </SectionHeader>
             {detailLoading ? (
               <div>
                 {[...Array(2)].map((_, i) => (
@@ -2300,6 +2348,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2447,6 +2496,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2502,7 +2552,8 @@ function App() {
                 isAdmin={isAdmin}
                 onAdmin={() => setScreen("admin")}
               />
-              <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+              <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
             </div>
           </div>
           {showAuth && (
@@ -2542,6 +2593,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2581,6 +2633,7 @@ function App() {
           <Logo />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar user={user} onSignOut={handleSignOut} onShowAuth={() => setShowAuth(true)} isAdmin={isAdmin} onAdmin={() => setScreen("admin")} />
+            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2750,6 +2803,7 @@ function App() {
             isAdmin={isAdmin}
             onAdmin={() => setScreen("admin")}
           />
+          <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
           <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
         </div>
       </div>

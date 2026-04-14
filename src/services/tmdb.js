@@ -4,6 +4,15 @@ export const POSTER_URL = "https://image.tmdb.org/t/p/w500";
 export const LOGO_URL = "https://image.tmdb.org/t/p/w92";
 export const PROFILE_URL = "https://image.tmdb.org/t/p/w185";
 
+// Locale state — aktualizowane przez setTMDBLocale() z App.js
+let _language = "pl-PL";
+let _region   = "PL";
+
+export function setTMDBLocale(language, region) {
+  _language = language;
+  _region   = region;
+}
+
 const GENRE_MAP = {
   28: "Akcja", 12: "Przygodowy", 16: "Animacja", 35: "Komedia",
   80: "Kryminał", 99: "Dokumentalny", 18: "Dramat", 10751: "Familijny",
@@ -15,7 +24,7 @@ const GENRE_MAP = {
 function apiFetch(path, extraParams = "") {
   const sep = path.includes("?") ? "&" : "?";
   return fetch(
-    `${BASE_URL}${path}${sep}api_key=${API_KEY}&language=pl-PL${extraParams}`
+    `${BASE_URL}${path}${sep}api_key=${API_KEY}&language=${_language}${extraParams}`
   ).then(res => {
     if (!res.ok) throw new Error(`TMDB błąd ${res.status}`);
     return res.json();
@@ -135,7 +144,7 @@ export function fetchProviders(id, mediaType = "movie") {
   const path = mediaType === "tv"
     ? `/tv/${id}/watch/providers`
     : `/movie/${id}/watch/providers`;
-  return apiFetch(path, "&region=PL").then(d => d.results?.PL ?? null);
+  return apiFetch(path, `&region=${_region}`).then(d => d.results?.[_region] ?? null);
 }
 
 /** Obsada — pierwsze 5 aktorów. */
@@ -172,10 +181,10 @@ export function fetchVideos(id, mediaType = "movie") {
            null;
   }
 
-  // Krok 1: pl-PL
+  // Krok 1: wybrany język
   return apiFetch(path).then(d => {
     const plVideos = d.results ?? [];
-    console.log(`[Videos] ${path} pl-PL: ${plVideos.length} wyników`);
+    console.log(`[Videos] ${path} ${_language}: ${plVideos.length} wyników`);
     const pick = pickYT(plVideos);
     if (pick) {
       console.log(`[Videos] Wybrany (pl): ${pick.type} "${pick.name}" key=${pick.key}`);
@@ -233,7 +242,7 @@ export function fetchRecommendations(id, mediaType = "movie") {
 
 /** Top 10 trendujących filmów tygodnia. */
 export function fetchTrendingMovies() {
-  return apiFetch("/trending/movie/week", "&region=PL")
+  return apiFetch("/trending/movie/week", `&region=${_region}`)
     .then(d => d.results.filter(notRuUk).slice(0, 10).map(mapMovie));
 }
 
@@ -243,11 +252,11 @@ export function fetchTrendingTV() {
     .then(d => d.results.filter(notRuUk).slice(0, 10).map(mapTVList));
 }
 
-/** Nadchodzące premiery kinowe w Polsce — strony 1 i 2. */
+/** Nadchodzące premiery kinowe — strony 1 i 2. */
 export function fetchUpcoming() {
   return Promise.all([
-    apiFetch("/movie/upcoming", "&region=PL&page=1"),
-    apiFetch("/movie/upcoming", "&region=PL&page=2"),
+    apiFetch("/movie/upcoming", `&region=${_region}&page=1`),
+    apiFetch("/movie/upcoming", `&region=${_region}&page=2`),
   ]).then(pages => {
     const seen = new Set();
     return pages.flatMap(p => p.results ?? [])
@@ -273,7 +282,7 @@ export async function discoverMovies({ genreIds = [], minRating = 0, providerId 
   let extra = `&page=${page}&sort_by=popularity.desc&vote_count.gte=100`;
   if (genreIds.length) extra += `&with_genres=${genreIds.join(",")}`;
   if (minRating > 0) extra += `&vote_average.gte=${minRating}`;
-  if (providerId) extra += `&with_watch_providers=${providerId}&watch_region=PL`;
+  if (providerId) extra += `&with_watch_providers=${providerId}&watch_region=${_region}`;
   if (yearFrom) extra += `&primary_release_date.gte=${yearFrom}-01-01`;
   if (yearTo) extra += `&primary_release_date.lte=${yearTo}-12-31`;
   if (country) extra += `&with_origin_country=${country}`;
@@ -287,9 +296,9 @@ export async function discoverMovies({ genreIds = [], minRating = 0, providerId 
 /** Pełny kalendarz premier — 3 strony TMDB (ok. 60 filmów). */
 export function fetchUpcomingCalendar() {
   return Promise.all([
-    apiFetch("/movie/upcoming", "&region=PL&page=1"),
-    apiFetch("/movie/upcoming", "&region=PL&page=2"),
-    apiFetch("/movie/upcoming", "&region=PL&page=3"),
+    apiFetch("/movie/upcoming", `&region=${_region}&page=1`),
+    apiFetch("/movie/upcoming", `&region=${_region}&page=2`),
+    apiFetch("/movie/upcoming", `&region=${_region}&page=3`),
   ]).then(pages => {
     const seen = new Set();
     const all = pages.flatMap(p => p.results ?? []);
