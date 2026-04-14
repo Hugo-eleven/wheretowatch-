@@ -63,6 +63,8 @@ const WRAP = {
   maxWidth: 960,
   margin: "0 auto",
   paddingBottom: 90,
+  width: "100%",
+  overflowX: "hidden",
 };
 
 function Logo() {
@@ -1731,9 +1733,9 @@ function App() {
   if (screen === "detail" && selectedMovie) {
     const m = selectedMovie;
     const providerGroups = [
-      { label: "Streaming", icon: "📺", items: selectedProviders?.flatrate ?? [] },
-      { label: "Wypożyczenie", icon: "🎬", items: selectedProviders?.rent ?? [] },
-      { label: "Zakup", icon: "🛒", items: selectedProviders?.buy ?? [] },
+      { label: "Streaming", headerLabel: "🎬 Oglądaj w ramach subskrypcji", btnText: "Oglądaj", btnColor: "#E50914", items: selectedProviders?.flatrate ?? [] },
+      { label: "Wypożyczenie", headerLabel: "💰 Wypożycz", btnText: "Wypożycz", btnColor: "#2196F3", items: selectedProviders?.rent ?? [] },
+      { label: "Zakup", headerLabel: "🛒 Kup", btnText: "Kup", btnColor: "#4CAF50", items: selectedProviders?.buy ?? [] },
     ].filter(g => g.items.length > 0);
 
     return (
@@ -2073,7 +2075,7 @@ function App() {
                 ))}
               </div>
             ) : selectedCredits.length > 0 ? (
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
                 {selectedCredits.map(actor => (
                   <div key={actor.id} style={{ minWidth: 72, textAlign: "center", flexShrink: 0 }}>
                     <div style={{
@@ -2158,14 +2160,16 @@ function App() {
                 ))}
               </div>
             ) : providerGroups.length > 0 ? (
-              providerGroups.map(group => (
+              providerGroups.map((group, idx) => (
                 <div key={group.label} style={{ marginBottom: 16 }}>
                   <div style={{
-                    fontSize: 11, fontWeight: 700, color: t.tm,
-                    textTransform: "uppercase", letterSpacing: 1,
-                    marginBottom: 8, display: "flex", alignItems: "center", gap: 6,
+                    fontSize: 15, fontWeight: 700, color: "#ccc",
+                    marginTop: idx > 0 ? 16 : 0,
+                    marginBottom: 8,
+                    paddingTop: idx > 0 ? 12 : 0,
+                    borderTop: idx > 0 ? "1px solid #333" : "none",
                   }}>
-                    <span>{group.icon}</span> {group.label}
+                    {group.headerLabel}
                   </div>
                   {group.items.map(p => (
                     <div key={p.provider_id} style={{
@@ -2192,9 +2196,9 @@ function App() {
                           </span>
                         )}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{p.provider_name}</div>
-                        <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{group.label}</div>
+                        <div style={{ fontSize: 11, color: t.tm, marginTop: 1 }}>{group.btnText}</div>
                       </div>
                       <a
                         href={selectedProviders?.link ?? "#"}
@@ -2202,13 +2206,13 @@ function App() {
                         rel="noopener noreferrer"
                         onClick={e => { if (!selectedProviders?.link) e.preventDefault(); }}
                         style={{
-                          fontSize: 12, fontWeight: 700, color: t.a,
+                          fontSize: 12, fontWeight: 700, color: "#fff",
                           padding: "7px 16px", borderRadius: 10,
-                          background: t.ad, border: "1px solid " + t.ab,
-                          textDecoration: "none", whiteSpace: "nowrap",
+                          background: group.btnColor,
+                          textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
                         }}
                       >
-                        {group.label === "Streaming" ? "Oglądaj" : group.label === "Wypożyczenie" ? "Wypożycz" : "Kup"}
+                        {group.btnText}
                       </a>
                     </div>
                   ))}
