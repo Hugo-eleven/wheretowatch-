@@ -873,23 +873,9 @@ function App() {
   const [popularMovies, setPopularMovies] = useState([]);
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [savedMovies, setSavedMovies] = useState(() => {
-    try {
-      const stored = localStorage.getItem("wtw_saved");
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [savedMovies, setSavedMovies] = useState([]);
   // Mapuje id → mediaType żeby wiedzieć jak fetch'ować szczegóły zapisanego tytułu
-  const [savedMediaTypes, setSavedMediaTypes] = useState(() => {
-    try {
-      const stored = localStorage.getItem("wtw_saved_types");
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [savedMediaTypes, setSavedMediaTypes] = useState({});
 
   // Detail
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -972,6 +958,9 @@ function App() {
   const [savedProvidersMap, setSavedProvidersMap] = useState({});
   const [savedProvidersLoading, setSavedProvidersLoading] = useState(false);
 
+  // Toast komunikat
+  const [loginToast, setLoginToast] = useState(false);
+
   // "Co obejrzeć dziś" modal
   const [showRandom, setShowRandom] = useState(false);
   const [genres, setGenres] = useState([]);
@@ -1002,14 +991,21 @@ function App() {
 
   const toggleTheme = () => setDarkMode(d => !d);
 
-  // Zapisuj ulubione do localStorage przy każdej zmianie
+  // Toast "Zaloguj się, aby dodawać do listy" — renderowany przez imperatywne DOM
   useEffect(() => {
-    localStorage.setItem("wtw_saved", JSON.stringify(savedMovies));
-  }, [savedMovies]);
-
-  useEffect(() => {
-    localStorage.setItem("wtw_saved_types", JSON.stringify(savedMediaTypes));
-  }, [savedMediaTypes]);
+    if (!loginToast) return;
+    const el = document.createElement('div');
+    el.textContent = '🔐 Zaloguj się, aby dodawać do listy';
+    el.style.cssText = [
+      'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
+      'background:#141929', 'border:1.5px solid #00E5A0', 'color:#E8ECF4',
+      'font-size:14px', 'font-weight:600', 'padding:12px 24px', 'border-radius:12px',
+      'z-index:9999', 'box-shadow:0 4px 20px rgba(0,0,0,0.5)',
+      'white-space:nowrap', 'pointer-events:none',
+    ].join(';');
+    document.body.appendChild(el);
+    return () => { if (document.body.contains(el)) document.body.removeChild(el); };
+  }, [loginToast]);
 
   // Ładuj wszystkie dane startowe
   useEffect(() => {
@@ -1274,16 +1270,13 @@ function App() {
     setSavedMovies([]);
     setSavedMediaTypes({});
     setSavedMoviesCache({});
-    try {
-      localStorage.removeItem("wtw_saved");
-      localStorage.removeItem("wtw_saved_types");
-    } catch {}
     setUser(null);
   }
 
   function toggleSaved(id, mediaType = "movie") {
     if (!user) {
-      setShowAuth(true);
+      setLoginToast(true);
+      setTimeout(() => setLoginToast(false), 3000);
       return;
     }
     const removing = savedMovies.includes(id);
@@ -2736,9 +2729,10 @@ function App() {
       <div style={{ padding: "8px 20px 20px" }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ Moja lista</h2>
         <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>
-          {savedMovies.length > 0
-            ? `${savedMovies.length} ${savedMovies.length === 1 ? "tytuł" : savedMovies.length < 5 ? "tytuły" : "tytułów"}`
-            : "Brak zapisanych tytułów"}
+          {!user ? "Zaloguj się, żeby zobaczyć swoją listę"
+            : savedMovies.length > 0
+              ? `${savedMovies.length} ${savedMovies.length === 1 ? "tytuł" : savedMovies.length < 5 ? "tytuły" : "tytułów"}`
+              : "Brak zapisanych tytułów"}
         </p>
       </div>
 
