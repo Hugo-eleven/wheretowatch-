@@ -1554,10 +1554,6 @@ function App() {
       { id: "movie", label: "🎬 Filmy" },
       { id: "tv", label: "📺 Seriale" },
     ];
-    const visibleResults = searchFilter === "all"
-      ? searchResults
-      : searchResults.filter(m => m.mediaType === searchFilter);
-
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
