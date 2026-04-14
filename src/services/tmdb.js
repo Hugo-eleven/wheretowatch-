@@ -270,14 +270,17 @@ export function fetchGenres() {
 
 /** Odkrywaj filmy z filtrami (/discover/movie). */
 export async function discoverMovies({ genreIds = [], minRating = 0, providerId = "", yearFrom = "", yearTo = "", country = "", page = 1 } = {}) {
-  let extra = `&page=${page}&sort_by=popularity.desc&vote_count.gte=50`;
+  let extra = `&page=${page}&sort_by=popularity.desc&vote_count.gte=100`;
   if (genreIds.length) extra += `&with_genres=${genreIds.join(",")}`;
   if (minRating > 0) extra += `&vote_average.gte=${minRating}`;
   if (providerId) extra += `&with_watch_providers=${providerId}&watch_region=PL`;
   if (yearFrom) extra += `&primary_release_date.gte=${yearFrom}-01-01`;
   if (yearTo) extra += `&primary_release_date.lte=${yearTo}-12-31`;
   if (country) extra += `&with_origin_country=${country}`;
+  const debugUrl = `${BASE_URL}/discover/movie?api_key=***&language=pl-PL${extra}`;
+  console.log("[discoverMovies] URL:", debugUrl);
   const d = await apiFetch("/discover/movie", extra);
+  console.log("[discoverMovies] total_pages:", d.total_pages, "results:", d.results?.length ?? 0);
   return { results: (d.results ?? []).filter(notRuUk).map(mapMovie), totalPages: d.total_pages ?? 1 };
 }
 

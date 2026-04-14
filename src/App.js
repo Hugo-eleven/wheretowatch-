@@ -721,11 +721,34 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
   async function pick(params) {
     setLoading(true); setMovie(null); setErr(null);
     try {
-      const page = Math.floor(Math.random() * 8) + 1;
-      const { results } = await discoverMovies({ ...params, page });
-      if (results.length) setMovie(results[Math.floor(Math.random() * results.length)]);
-      else setErr("Brak filmów spełniających kryteria. Spróbuj innych ustawień.");
-    } catch { setErr("Błąd połączenia z TMDB."); }
+      // Krok 1: pobierz stronę 1 żeby poznać total_pages
+      const first = await discoverMovies({ ...params, page: 1 });
+      const totalPages = Math.min(first.totalPages ?? 1, 500);
+      console.log("[RandomMovie] total_pages:", first.totalPages, "→ używamy max:", totalPages);
+
+      let results = first.results;
+
+      // Krok 2: jeśli jest więcej stron, losuj jedną i pobierz
+      if (totalPages > 1) {
+        const randomPage = Math.floor(Math.random() * totalPages) + 1;
+        console.log("[RandomMovie] losowa strona:", randomPage);
+        if (randomPage > 1) {
+          const { results: pageResults } = await discoverMovies({ ...params, page: randomPage });
+          results = pageResults;
+        }
+      }
+
+      if (results.length) {
+        const film = results[Math.floor(Math.random() * results.length)];
+        console.log("[RandomMovie] wylosowany film:", film.title, "(id:", film.id, ")");
+        setMovie(film);
+      } else {
+        setErr("Brak filmów spełniających kryteria. Spróbuj innych ustawień.");
+      }
+    } catch (e) {
+      console.error("[RandomMovie] błąd:", e);
+      setErr("Błąd połączenia z TMDB.");
+    }
     setLoading(false);
   }
 
