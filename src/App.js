@@ -1935,27 +1935,65 @@ function App() {
               ))}
             </div>
           )}
-          {showFootball && !footballLoading && footballMatches.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SectionHeader>Nadchodzące mecze</SectionHeader>
-              <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, overflow: "hidden" }}>
-                {footballMatches.map((m, idx) => (
-                  <div key={m.id} style={{
-                    padding: "10px 14px",
-                    borderBottom: idx < footballMatches.length - 1 ? "1px solid " + t.b : "none",
-                  }}>
-                    <div style={{ fontSize: 10, color: t.a, fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>
-                      {m.competition}
+          {showFootball && !footballLoading && footballMatches.length > 0 && (() => {
+            const PL_DAYS = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+            const PL_MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+            const byDay = {};
+            for (const m of footballMatches) {
+              const dayKey = m.date.split(",")[0].trim(); // "14.04"
+              if (!byDay[dayKey]) byDay[dayKey] = {};
+              if (!byDay[dayKey][m.competition]) byDay[dayKey][m.competition] = [];
+              byDay[dayKey][m.competition].push(m);
+            }
+            const sortedDays = Object.entries(byDay).sort(([a], [b]) => {
+              const n = k => { const [d, mo] = k.split("."); return Number(mo) * 100 + Number(d); };
+              return n(a) - n(b);
+            });
+            const dayLabel = k => {
+              const [d, mo] = k.split(".").map(Number);
+              const date = new Date(new Date().getFullYear(), mo - 1, d);
+              return `${PL_DAYS[date.getDay()]}, ${d} ${PL_MONTHS[mo - 1]}`;
+            };
+            return (
+              <div style={{ marginBottom: 24 }}>
+                <SectionHeader>Nadchodzące mecze</SectionHeader>
+                {sortedDays.map(([dayKey, leagues]) => (
+                  <div key={dayKey} style={{ marginBottom: 20 }}>
+                    <div style={{
+                      fontSize: 13, fontWeight: 800, color: t.tx,
+                      padding: "6px 0 8px", borderBottom: "1px solid " + t.b, marginBottom: 10,
+                    }}>
+                      {dayLabel(dayKey)}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: t.tx }}>
-                      {m.homeTeam} – {m.awayTeam}
-                    </div>
-                    <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>{m.date}</div>
+                    {Object.entries(leagues).map(([league, lMatches]) => (
+                      <div key={league} style={{ marginBottom: 12 }}>
+                        <div style={{
+                          fontSize: 11, fontWeight: 700, color: t.a,
+                          textTransform: "uppercase", letterSpacing: 0.6,
+                          marginBottom: 6, paddingLeft: 2,
+                        }}>
+                          {league}
+                        </div>
+                        <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, overflow: "hidden" }}>
+                          {lMatches.map((m, idx) => (
+                            <div key={m.id} style={{
+                              padding: "10px 14px",
+                              borderBottom: idx < lMatches.length - 1 ? "1px solid " + t.b : "none",
+                            }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: t.tx }}>
+                                {m.homeTeam} – {m.awayTeam}
+                              </div>
+                              <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>{m.date}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Wydarzenia ręczne / planowane */}
           {filteredSports.length > 0 && (
