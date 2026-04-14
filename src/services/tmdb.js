@@ -263,6 +263,24 @@ export function fetchUpcoming() {
   });
 }
 
+/** Lista gatunków filmowych z TMDB. */
+export function fetchGenres() {
+  return apiFetch("/genre/movie/list").then(d => d.genres ?? []);
+}
+
+/** Odkrywaj filmy z filtrami (/discover/movie). */
+export async function discoverMovies({ genreIds = [], minRating = 0, providerId = "", yearFrom = "", yearTo = "", country = "", page = 1 } = {}) {
+  let extra = `&page=${page}&sort_by=popularity.desc&vote_count.gte=50`;
+  if (genreIds.length) extra += `&with_genres=${genreIds.join(",")}`;
+  if (minRating > 0) extra += `&vote_average.gte=${minRating}`;
+  if (providerId) extra += `&with_watch_providers=${providerId}&watch_region=PL`;
+  if (yearFrom) extra += `&primary_release_date.gte=${yearFrom}-01-01`;
+  if (yearTo) extra += `&primary_release_date.lte=${yearTo}-12-31`;
+  if (country) extra += `&with_origin_country=${country}`;
+  const d = await apiFetch("/discover/movie", extra);
+  return { results: (d.results ?? []).filter(notRuUk).map(mapMovie), totalPages: d.total_pages ?? 1 };
+}
+
 /** Pełny kalendarz premier — 3 strony TMDB (ok. 60 filmów). */
 export function fetchUpcomingCalendar() {
   return Promise.all([

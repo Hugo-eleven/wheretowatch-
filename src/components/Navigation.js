@@ -1,9 +1,10 @@
 const NAV_ITEMS = [
-  { id: "home", label: "Odkrywaj", emoji: "🏠" },
-  { id: "search", label: "Szukaj", emoji: "🔍" },
+  { id: "home",      label: "Odkrywaj", emoji: "🏠" },
+  { id: "search",    label: "Szukaj",   emoji: "🔍" },
   { id: "premieres", label: "Premiery", emoji: "📅" },
-  { id: "sports", label: "Sport", emoji: "⚽" },
-  { id: "saved", label: "Lista", emoji: "❤️" },
+  { id: "sports",    label: "Sport",    emoji: "⚽" },
+  { id: "platforms", label: "Ceny",     emoji: "💰" },
+  { id: "saved",     label: "Lista",    emoji: "❤️" },
 ];
 
 export function Navigation({ screen, setScreen }) {
@@ -42,7 +43,7 @@ export function Navigation({ screen, setScreen }) {
               flexDirection: "column",
               alignItems: "center",
               gap: 3,
-              padding: "6px 16px",
+              padding: "6px 8px",
               position: "relative",
               transition: "color 0.15s",
               letterSpacing: 0.3,

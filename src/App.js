@@ -6,6 +6,7 @@ import {
   fetchDetails, fetchProviders, fetchCredits, fetchSimilar, fetchRecommendations,
   fetchTrendingMovies, fetchTrendingTV, fetchUpcoming, fetchUpcomingCalendar,
   fetchEpisodes, fetchExternalIds, fetchVideos, LOGO_URL,
+  fetchGenres, discoverMovies,
 } from "./services/tmdb";
 import { fetchOMDbRatings } from "./services/omdb";
 import { fetchScheduledMatches } from "./services/football";
@@ -16,6 +17,29 @@ import { SportCard } from "./components/SportCard";
 import { RankingCard } from "./components/RankingCard";
 import { AuthModal } from "./components/Auth";
 import { AdminPanel } from "./components/AdminPanel";
+
+const TMDB_PLATFORMS_PL = [
+  { id: "8",    name: "Netflix",          price: "33 zł/msc" },
+  { id: "337",  name: "Disney+",          price: "37.99 zł/msc" },
+  { id: "1899", name: "Max",              price: "29.99 zł/msc" },
+  { id: "35",   name: "Canal+",           price: "45 zł/msc" },
+  { id: "350",  name: "Apple TV+",        price: "34.99 zł/msc" },
+  { id: "9",    name: "Amazon Prime",     price: "49 zł/rok" },
+  { id: "1773", name: "SkyShowtime",      price: "19.99 zł/msc" },
+  { id: "76",   name: "Viaplay",          price: "34 zł/msc" },
+  { id: "185",  name: "Player.pl",        price: "20 zł/msc" },
+];
+
+const COUNTRY_OPTIONS = [
+  { code: "", label: "Wszystkie" },
+  { code: "US", label: "USA" },
+  { code: "PL", label: "Polska" },
+  { code: "GB", label: "Wielka Brytania" },
+  { code: "FR", label: "Francja" },
+  { code: "DE", label: "Niemcy" },
+  { code: "KR", label: "Korea Płd." },
+  { code: "JP", label: "Japonia" },
+];
 
 const PLATFORM_PRICES = {
   "Netflix": "33 zł/msc",
@@ -683,6 +707,164 @@ function RatingsGrid({ seasonsList, ratingsMap, loading, onLoadMore, remainingSe
   );
 }
 
+function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
+  const [mode, setMode] = useState(null);
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [filterGenre, setFilterGenre] = useState("");
+  const [filterRating, setFilterRating] = useState(6);
+  const [filterPlatform, setFilterPlatform] = useState("");
+  const [err, setErr] = useState(null);
+
+  async function pick(params) {
+    setLoading(true); setMovie(null); setErr(null);
+    try {
+      const page = Math.floor(Math.random() * 8) + 1;
+      const { results } = await discoverMovies({ ...params, page });
+      if (results.length) setMovie(results[Math.floor(Math.random() * results.length)]);
+      else setErr("Brak filmów spełniających kryteria. Spróbuj innych ustawień.");
+    } catch { setErr("Błąd połączenia z TMDB."); }
+    setLoading(false);
+  }
+
+  function pickRandom() { pick({ minRating: 5 }); }
+
+  function pickByTaste() {
+    const counts = {};
+    savedMoviesData.forEach(m => { if (m.genre) counts[m.genre] = (counts[m.genre] || 0) + 1; });
+    const topGenre = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const matched = genres.find(g => g.name === topGenre);
+    pick({ genreIds: matched ? [matched.id] : [], minRating: 6 });
+  }
+
+  function pickFiltered() {
+    pick({ genreIds: filterGenre ? [Number(filterGenre)] : [], minRating: filterRating, providerId: filterPlatform });
+  }
+
+  const SELECT_STYLE = {
+    background: t.s, border: "1.5px solid " + t.b, borderRadius: 10,
+    color: t.tx, fontSize: 13, padding: "9px 12px", width: "100%",
+    outline: "none", fontFamily: "inherit",
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 600,
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "flex-end", justifyContent: "center",
+    }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        background: t.bg, borderRadius: "22px 22px 0 0",
+        border: "1px solid " + t.b, width: "100%", maxWidth: 600,
+        maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>🎲 Co obejrzeć dziś?</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: t.tm, cursor: "pointer", fontSize: 22 }}>×</button>
+        </div>
+
+        {!mode && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[
+              { id: "random", emoji: "🎲", title: "Totalnie losowo", desc: "Zaskoczymy Cię filmem z popularnych tytułów" },
+              { id: "taste",  emoji: "❤️", title: "Na podstawie moich gustów", desc: "Filmy dopasowane do Twojej listy ulubionych" },
+              { id: "filter", emoji: "🎯", title: "Z filtrem", desc: "Wybierz gatunek, ocenę i platformę" },
+            ].map(m => (
+              <button key={m.id} onClick={() => { setMode(m.id); setMovie(null); setErr(null); if (m.id === "random") pickRandom(); if (m.id === "taste") pickByTaste(); }}
+                style={{
+                  background: t.s, border: "1.5px solid " + t.b, borderRadius: 16,
+                  padding: "16px 18px", cursor: "pointer", textAlign: "left",
+                  display: "flex", gap: 14, alignItems: "center",
+                  transition: "border-color 0.15s",
+                }}>
+                <span style={{ fontSize: 28 }}>{m.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>{m.title}</div>
+                  <div style={{ fontSize: 12, color: t.tm, marginTop: 2 }}>{m.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mode === "filter" && !movie && !loading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left", padding: 0 }}>← Wróć</button>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>GATUNEK</div>
+              <select value={filterGenre} onChange={e => setFilterGenre(e.target.value)} style={SELECT_STYLE}>
+                <option value="">Dowolny gatunek</option>
+                {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>MINIMALNA OCENA: {filterRating.toFixed(1)}</div>
+              <input type="range" min={5} max={9} step={0.5} value={filterRating} onChange={e => setFilterRating(Number(e.target.value))}
+                style={{ width: "100%", accentColor: t.a }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>PLATFORMA</div>
+              <select value={filterPlatform} onChange={e => setFilterPlatform(e.target.value)} style={SELECT_STYLE}>
+                <option value="">Dowolna platforma</option>
+                {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <button onClick={pickFiltered} style={{
+              background: "#E50914", border: "none", borderRadius: 14,
+              color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", padding: "14px",
+            }}>🎲 Losuj!</button>
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
+            <div style={{ fontSize: 14, color: t.tm }}>Losujemy film dla Ciebie...</div>
+          </div>
+        )}
+
+        {err && (
+          <div style={{ textAlign: "center", padding: "24px 0" }}>
+            <div style={{ fontSize: 13, color: t.d, marginBottom: 12 }}>{err}</div>
+            <button onClick={() => setMode(null)} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 20px" }}>Spróbuj ponownie</button>
+          </div>
+        )}
+
+        {movie && !loading && (
+          <div>
+            <button onClick={() => { setMode(null); setMovie(null); }} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0, marginBottom: 16 }}>← Zmień tryb</button>
+            <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 18, overflow: "hidden" }}>
+              {movie.poster && (
+                <img src={movie.poster} alt={movie.title} style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} />
+              )}
+              <div style={{ padding: "16px 18px" }}>
+                <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>{movie.title}</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                  {movie.imdb && <span style={{ fontSize: 12, fontWeight: 700, color: t.w, background: t.wa, padding: "3px 9px", borderRadius: 8 }}>⭐ {movie.imdb}</span>}
+                  <span style={{ fontSize: 12, color: t.tm }}>{[movie.year, movie.genre].filter(Boolean).join(" · ")}</span>
+                </div>
+                <p style={{ fontSize: 13, color: t.tm, lineHeight: 1.65, margin: "0 0 16px" }}>
+                  {movie.synopsis?.length > 200 ? movie.synopsis.slice(0, 200) + "…" : movie.synopsis}
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { onOpen(movie); onClose(); }} style={{
+                    flex: 1, background: "#E50914", border: "none", borderRadius: 12,
+                    color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", padding: "12px",
+                  }}>Szczegóły</button>
+                  <button onClick={() => { if (mode === "random") pickRandom(); else if (mode === "taste") pickByTaste(); else pickFiltered(); }} style={{
+                    flex: 1, background: t.s, border: "1.5px solid " + t.b, borderRadius: 12,
+                    color: t.a, fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "12px",
+                  }}>🎲 Losuj ponownie</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
@@ -789,6 +971,28 @@ function App() {
   // Porównywarka subskrypcji
   const [savedProvidersMap, setSavedProvidersMap] = useState({});
   const [savedProvidersLoading, setSavedProvidersLoading] = useState(false);
+
+  // "Co obejrzeć dziś" modal
+  const [showRandom, setShowRandom] = useState(false);
+  const [genres, setGenres] = useState([]);
+
+  // Ekran Platformy — wyszukiwarka "gdzie obejrzę?"
+  const [platformSearch, setPlatformSearch] = useState("");
+  const [platformSearchResults, setPlatformSearchResults] = useState([]);
+  const [platformSearchLoading, setPlatformSearchLoading] = useState(false);
+  const [platformSearchMovie, setPlatformSearchMovie] = useState(null);
+  const [platformSearchProviders, setPlatformSearchProviders] = useState(null);
+
+  // Zaawansowane filtry wyszukiwarki
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterGenreIds, setFilterGenreIds] = useState([]);
+  const [filterYearFrom, setFilterYearFrom] = useState("");
+  const [filterYearTo, setFilterYearTo] = useState("");
+  const [filterMinRating, setFilterMinRating] = useState(0);
+  const [filterPlatformId, setFilterPlatformId] = useState("");
+  const [filterCountry, setFilterCountry] = useState("");
+  const [discoverResults, setDiscoverResults] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
 
   // Sync motywu z DOM + localStorage
   useEffect(() => {
@@ -919,9 +1123,42 @@ function App() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Ładuj gatunki raz przy starcie
+  useEffect(() => {
+    fetchGenres().then(setGenres).catch(() => {});
+  }, []);
+
+  // Discover z filtrami (debounce 400ms)
+  useEffect(() => {
+    const hasFilters = filterGenreIds.length > 0 || filterMinRating > 0 || filterPlatformId || filterYearFrom || filterYearTo || filterCountry;
+    if (!hasFilters) { setDiscoverResults([]); return; }
+    setDiscoverLoading(true);
+    const timer = setTimeout(() => {
+      discoverMovies({ genreIds: filterGenreIds, minRating: filterMinRating, providerId: filterPlatformId, yearFrom: filterYearFrom, yearTo: filterYearTo, country: filterCountry })
+        .then(({ results }) => setDiscoverResults(results))
+        .catch(() => setDiscoverResults([]))
+        .finally(() => setDiscoverLoading(false));
+    }, 400);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterGenreIds.join(","), filterMinRating, filterPlatformId, filterYearFrom, filterYearTo, filterCountry]);
+
+  // Wyszukiwarka "gdzie obejrzę?" na ekranie Platformy
+  useEffect(() => {
+    if (!platformSearch.trim()) { setPlatformSearchResults([]); return; }
+    setPlatformSearchLoading(true);
+    const timer = setTimeout(() => {
+      searchMulti(platformSearch)
+        .then(r => setPlatformSearchResults(r.slice(0, 6)))
+        .catch(() => setPlatformSearchResults([]))
+        .finally(() => setPlatformSearchLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [platformSearch]);
+
   // Pobieranie szczegółów filmów zapisanych w poprzednich sesjach (nie ma ich w popularMovies/searchResults)
   useEffect(() => {
-    if (screen !== "saved") return;
+    if (screen !== "saved" && screen !== "platforms") return;
     const loadedIds = new Set([...popularMovies, ...searchResults].map(m => m.id));
     const missingIds = savedMovies.filter(id => !loadedIds.has(id) && !(id in savedMoviesCache));
     if (missingIds.length === 0) return;
@@ -946,7 +1183,7 @@ function App() {
 
   // Pobieranie dostawców dla zapisanych filmów (porównywarka subskrypcji)
   useEffect(() => {
-    if (screen !== "saved") return;
+    if (screen !== "saved" && screen !== "platforms") return;
     const allKnown = [...popularMovies, ...searchResults, ...Object.values(savedMoviesCache)];
     const currentSavedList = allKnown.filter(
       (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
@@ -1137,6 +1374,26 @@ function App() {
           </div>
         </div>
 
+        {/* Co obejrzeć dziś */}
+        {!homeLoading && !homeError && (
+          <div style={{ padding: "0 20px 20px" }}>
+            <button
+              onClick={() => setShowRandom(true)}
+              style={{
+                width: "100%", padding: "15px 20px",
+                background: "linear-gradient(135deg, #E50914, #c40812)",
+                border: "none", borderRadius: 16,
+                color: "#fff", fontSize: 16, fontWeight: 800,
+                cursor: "pointer", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 10,
+                boxShadow: "0 4px 24px rgba(229,9,20,0.35)",
+              }}
+            >
+              🎲 Co obejrzeć dziś?
+            </button>
+          </div>
+        )}
+
         {/* Hero Banner */}
         {!homeLoading && !homeError && (
           <HeroBanner
@@ -1277,6 +1534,14 @@ function App() {
             onAuth={u => { setUser(u); setShowAuth(false); }}
           />
         )}
+        {showRandom && (
+          <RandomMovieModal
+            onClose={() => setShowRandom(false)}
+            onOpen={openMovie}
+            genres={genres}
+            savedMoviesData={[...popularMovies, ...Object.values(savedMoviesCache)].filter(m => savedMovies.includes(m.id))}
+          />
+        )}
         <Navigation screen={screen} setScreen={setScreen} />
       </div>
     );
@@ -1314,76 +1579,159 @@ function App() {
             onAuth={u => { setUser(u); setShowAuth(false); }}
           />
         )}
-        <div style={{ padding: "8px 20px 12px" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
-          <div style={{ position: "relative" }}>
-            <span style={{
-              position: "absolute", left: 14, top: "50%",
-              transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none",
-            }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Tytuł, gatunek..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%", background: t.s,
-                border: "1.5px solid " + (searchQuery ? t.a : t.b),
-                borderRadius: 14, padding: "14px 16px 14px 44px",
-                color: t.tx, fontSize: 15, outline: "none",
-                boxSizing: "border-box", transition: "border-color 0.15s",
-              }}
-            />
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            {SEARCH_FILTERS.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setSearchFilter(f.id)}
-                style={{
-                  padding: "7px 16px", borderRadius: 20, cursor: "pointer",
-                  border: "1.5px solid " + (searchFilter === f.id ? t.a : t.b),
-                  background: searchFilter === f.id ? t.ad : t.s,
-                  color: searchFilter === f.id ? t.a : t.tm,
-                  fontSize: 12, fontWeight: 700,
-                  transition: "all 0.15s",
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {(() => {
+          const hasFilters = filterGenreIds.length > 0 || filterMinRating > 0 || filterPlatformId || filterYearFrom || filterYearTo || filterCountry;
+          const usingDiscover = hasFilters && !searchQuery.trim();
+          const visibleResults = searchFilter === "all" ? searchResults : searchResults.filter(m => m.mediaType === searchFilter);
+          const FILTER_INPUT = { background: t.s, border: "1.5px solid " + t.b, borderRadius: 10, color: t.tx, fontSize: 12, padding: "7px 10px", outline: "none", fontFamily: "inherit" };
 
-        <div style={{ padding: "0 20px" }}>
-          {searchLoading ? (
-            <div className="search-results-grid">
-              {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
-            </div>
-          ) : visibleResults.length > 0 ? (
-            <div className="search-results-grid">
-              {visibleResults.map(m => (
-                <MovieCard
-                  key={m.id} movie={m}
-                  onOpen={openMovie}
-                  onToggleSaved={toggleSaved}
-                  saved={isSaved(m.id)}
-                />
-              ))}
-            </div>
-          ) : searchQuery.trim() ? (
-            <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Brak wyników</div>
-              <div style={{ fontSize: 13 }}>Spróbuj innej frazy</div>
-            </div>
-          ) : (
-            <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-              <div style={{ fontSize: 13 }}>Wpisz tytuł lub gatunek</div>
-            </div>
-          )}
-        </div>
+          return (
+            <>
+              <div style={{ padding: "8px 20px 12px" }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</span>
+                  <input
+                    type="text" placeholder="Tytuł, gatunek..."
+                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    style={{
+                      width: "100%", background: t.s,
+                      border: "1.5px solid " + (searchQuery ? t.a : t.b),
+                      borderRadius: 14, padding: "14px 16px 14px 44px",
+                      color: t.tx, fontSize: 15, outline: "none",
+                      boxSizing: "border-box", transition: "border-color 0.15s",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {SEARCH_FILTERS.map(f => (
+                      <button key={f.id} onClick={() => setSearchFilter(f.id)} style={{
+                        padding: "7px 16px", borderRadius: 20, cursor: "pointer",
+                        border: "1.5px solid " + (searchFilter === f.id ? t.a : t.b),
+                        background: searchFilter === f.id ? t.ad : t.s,
+                        color: searchFilter === f.id ? t.a : t.tm,
+                        fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                      }}>{f.label}</button>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowFilters(v => !v)} style={{
+                    background: hasFilters ? t.ad : t.s,
+                    border: "1.5px solid " + (hasFilters ? t.a : t.b),
+                    borderRadius: 20, color: hasFilters ? t.a : t.tm,
+                    fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "7px 14px",
+                  }}>
+                    {showFilters ? "▲ Filtry" : "▼ Filtry"}{hasFilters ? " ●" : ""}
+                  </button>
+                </div>
+
+                {/* Panel filtrów */}
+                {showFilters && (
+                  <div style={{ marginTop: 14, background: t.s, border: "1px solid " + t.b, borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+                    {/* Gatunki */}
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 8, textTransform: "uppercase" }}>Gatunek</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {genres.map(g => {
+                          const active = filterGenreIds.includes(g.id);
+                          return (
+                            <button key={g.id} onClick={() => setFilterGenreIds(prev => active ? prev.filter(x => x !== g.id) : [...prev, g.id])} style={{
+                              padding: "5px 11px", borderRadius: 14, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                              border: "1.5px solid " + (active ? t.a : t.b),
+                              background: active ? t.ad : "transparent",
+                              color: active ? t.a : t.tm, transition: "all 0.12s",
+                            }}>{g.name}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Rok + Ocena */}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Rok od</div>
+                        <input type="number" placeholder="np. 2000" value={filterYearFrom} onChange={e => setFilterYearFrom(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Rok do</div>
+                        <input type="number" placeholder="np. 2024" value={filterYearTo} onChange={e => setFilterYearTo(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Minimalna ocena: {filterMinRating > 0 ? filterMinRating.toFixed(1) : "brak"}</div>
+                      <input type="range" min={0} max={9} step={0.5} value={filterMinRating} onChange={e => setFilterMinRating(Number(e.target.value))} style={{ width: "100%", accentColor: t.a }} />
+                    </div>
+
+                    {/* Platforma + Kraj */}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Platforma</div>
+                        <select value={filterPlatformId} onChange={e => setFilterPlatformId(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
+                          <option value="">Dowolna</option>
+                          {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Kraj produkcji</div>
+                        <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
+                          {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    {hasFilters && (
+                      <button onClick={() => { setFilterGenreIds([]); setFilterYearFrom(""); setFilterYearTo(""); setFilterMinRating(0); setFilterPlatformId(""); setFilterCountry(""); }} style={{
+                        background: "none", border: "1px solid " + t.d, borderRadius: 10,
+                        color: t.d, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px",
+                      }}>Wyczyść filtry</button>
+                    )}
+
+                    {usingDiscover && <div style={{ fontSize: 11, color: t.tm, textAlign: "center" }}>🎯 Wyniki z discover (bez tekstu)</div>}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ padding: "0 20px" }}>
+                {usingDiscover ? (
+                  discoverLoading ? (
+                    <div className="search-results-grid">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
+                  ) : discoverResults.length > 0 ? (
+                    <div className="search-results-grid">
+                      {discoverResults.map(m => (
+                        <MovieCard key={m.id} movie={m} onOpen={openMovie} onToggleSaved={toggleSaved} saved={isSaved(m.id)} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
+                      <div style={{ fontSize: 14 }}>Brak filmów spełniających kryteria</div>
+                    </div>
+                  )
+                ) : searchLoading ? (
+                  <div className="search-results-grid">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
+                ) : visibleResults.length > 0 ? (
+                  <div className="search-results-grid">
+                    {visibleResults.map(m => (
+                      <MovieCard key={m.id} movie={m} onOpen={openMovie} onToggleSaved={toggleSaved} saved={isSaved(m.id)} />
+                    ))}
+                  </div>
+                ) : searchQuery.trim() ? (
+                  <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Brak wyników</div>
+                    <div style={{ fontSize: 13 }}>Spróbuj innej frazy</div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+                    <div style={{ fontSize: 13 }}>Wpisz tytuł lub ustaw filtry</div>
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
 
         <Navigation screen={screen} setScreen={setScreen} />
       </div>
@@ -2181,6 +2529,162 @@ function App() {
           onEventDeleted={id => setSportsFromDB(prev => (prev ?? SPORTS_EVENTS).filter(e => e.id !== id))}
           onBack={() => setScreen("home")}
         />
+      </div>
+    );
+  }
+
+  // ====== PLATFORMS ======
+  if (screen === "platforms") {
+    // Saved list for comparison
+    const plSavedList = [...popularMovies, ...searchResults, ...Object.values(savedMoviesCache)].filter(
+      (m, i, arr) => savedMovies.includes(m.id) && arr.findIndex(x => x.id === m.id) === i
+    );
+    const plCounts = {};
+    plSavedList.forEach(m => {
+      const prov = savedProvidersMap[m.id];
+      if (!prov) return;
+      const seen = new Set();
+      (prov.flatrate ?? []).forEach(p => {
+        if (!seen.has(p.provider_name)) { seen.add(p.provider_name); plCounts[p.provider_name] = (plCounts[p.provider_name] || 0) + 1; }
+      });
+    });
+    const plRanking = Object.entries(plCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
+
+    const LABEL_STYLE = { fontSize: 10, fontWeight: 700, color: t.tm, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 };
+    const INPUT_STYLE = { width: "100%", background: t.s, border: "1.5px solid " + t.b, borderRadius: 12, padding: "12px 16px", color: t.tx, fontSize: 14, outline: "none", boxSizing: "border-box" };
+
+    return (
+      <div style={WRAP}>
+        <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Logo />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <UserAvatar user={user} onSignOut={handleSignOut} onShowAuth={() => setShowAuth(true)} isAdmin={isAdmin} onAdmin={() => setScreen("admin")} />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
+        </div>
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={u => { setUser(u); setShowAuth(false); }} />}
+        <div style={{ padding: "8px 20px 20px" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>💰 Platformy streamingowe</h2>
+          <p style={{ fontSize: 13, color: t.tm, margin: "0 0 24px" }}>Ceny i dostępność w Polsce</p>
+
+          {/* A) Tabela cen */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={LABEL_STYLE}>Cennik platform</div>
+            <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 16, overflow: "hidden" }}>
+              {TMDB_PLATFORMS_PL.map((p, i) => (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: i < TMDB_PLATFORMS_PL.length - 1 ? "1px solid " + t.b : "none" }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{p.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.a }}>{p.price}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* B) Porównywarka z listy */}
+          {user && plSavedList.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={LABEL_STYLE}>Najlepsza platforma dla Twojej listy</div>
+              {savedProvidersLoading && plRanking.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ Ładowanie...</div>
+              ) : plRanking.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {plRanking.map(({ name, count }, i) => {
+                    const price = PLATFORM_PRICES[name];
+                    return (
+                      <div key={name} style={{ background: t.s, border: "1px solid " + (i === 0 ? t.a : t.b), borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: i === 0 ? t.a : t.tx }}>{["🏆","🥈","🥉"][i]} {name}</div>
+                          <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>{count} z {plSavedList.length} tytułów</div>
+                        </div>
+                        {price && <span style={{ fontSize: 12, fontWeight: 700, color: t.tm }}>{price}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Brak danych o platformach dla zapisanych filmów</div>
+              )}
+            </div>
+          )}
+
+          {/* C) Wyszukiwarka "gdzie obejrzę?" */}
+          <div>
+            <div style={LABEL_STYLE}>Gdzie obejrzę ten film?</div>
+            <input
+              type="text" placeholder="🔍 Wpisz tytuł filmu lub serialu..."
+              value={platformSearch} onChange={e => { setPlatformSearch(e.target.value); setPlatformSearchMovie(null); setPlatformSearchProviders(null); }}
+              style={INPUT_STYLE}
+            />
+            {platformSearchLoading && (
+              <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ Szukam...</div>
+            )}
+            {platformSearchResults.length > 0 && !platformSearchMovie && (
+              <div style={{ marginTop: 8, background: t.s, border: "1px solid " + t.b, borderRadius: 14, overflow: "hidden" }}>
+                {platformSearchResults.map((m, i) => (
+                  <button key={m.id} onClick={async () => {
+                    setPlatformSearchMovie(m);
+                    setPlatformSearchResults([]);
+                    setPlatformSearchProviders(null);
+                    try {
+                      const p = await fetchProviders(m.id, m.mediaType ?? "movie");
+                      setPlatformSearchProviders(p);
+                    } catch { setPlatformSearchProviders(null); }
+                  }} style={{
+                    width: "100%", background: "none", border: "none", borderBottom: i < platformSearchResults.length - 1 ? "1px solid " + t.b : "none",
+                    padding: "11px 16px", cursor: "pointer", textAlign: "left", display: "flex", gap: 10, alignItems: "center",
+                  }}>
+                    {m.poster && <img src={m.poster} alt="" width={32} height={44} style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />}
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: t.tx }}>{m.title}</div>
+                      <div style={{ fontSize: 11, color: t.tm }}>{[m.year, m.genre].filter(Boolean).join(" · ")}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {platformSearchMovie && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
+                  {platformSearchMovie.poster && <img src={platformSearchMovie.poster} alt="" width={40} height={56} style={{ borderRadius: 8, objectFit: "cover" }} />}
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800 }}>{platformSearchMovie.title}</div>
+                    <div style={{ fontSize: 12, color: t.tm }}>{[platformSearchMovie.year, platformSearchMovie.genre].filter(Boolean).join(" · ")}</div>
+                  </div>
+                  <button onClick={() => { setPlatformSearchMovie(null); setPlatformSearchProviders(null); }} style={{ marginLeft: "auto", background: "none", border: "none", color: t.tm, cursor: "pointer", fontSize: 18 }}>×</button>
+                </div>
+                {platformSearchProviders === undefined ? (
+                  <div style={{ fontSize: 13, color: t.tm }}>⏳ Ładowanie platform...</div>
+                ) : platformSearchProviders === null ? (
+                  <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Brak danych o platformach w Polsce dla tego tytułu</div>
+                ) : (() => {
+                  const groups = [
+                    { label: "Streaming", items: platformSearchProviders.flatrate ?? [] },
+                    { label: "Wypożyczenie", items: platformSearchProviders.rent ?? [] },
+                    { label: "Zakup", items: platformSearchProviders.buy ?? [] },
+                  ].filter(g => g.items.length > 0);
+                  if (!groups.length) return <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Niedostępny na platformach streamingowych w Polsce</div>;
+                  return groups.map(g => (
+                    <div key={g.label} style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, textTransform: "uppercase", marginBottom: 8 }}>{g.label}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {g.items.map(p => (
+                          <div key={p.provider_id} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                            {p.logo_path && <img src={`https://image.tmdb.org/t/p/w45${p.logo_path}`} alt="" width={22} height={22} style={{ borderRadius: 5, objectFit: "cover" }} />}
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: t.tx }}>{p.provider_name}</div>
+                              {PLATFORM_PRICES[p.provider_name] && <div style={{ fontSize: 10, color: t.tm }}>{PLATFORM_PRICES[p.provider_name]}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+        <Navigation screen={screen} setScreen={setScreen} />
       </div>
     );
   }
