@@ -1032,21 +1032,35 @@ function App() {
     }
   }
 
+  function handleSignOut() {
+    if (supabase) supabase.auth.signOut();
+    setSavedMovies([]);
+    setSavedMediaTypes({});
+    setSavedMoviesCache({});
+    try {
+      localStorage.removeItem("wtw_saved");
+      localStorage.removeItem("wtw_saved_types");
+    } catch {}
+    setUser(null);
+  }
+
   function toggleSaved(id, mediaType = "movie") {
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
     const removing = savedMovies.includes(id);
     if (!removing) setSavedMediaTypes(mt => ({ ...mt, [id]: mediaType }));
-    if (user) {
-      if (removing) {
-        removeSavedFromSupabase(user.id, id);
-      } else {
-        const allMovies = [
-          ...popularMovies, ...topRatedMovies, ...trendingMovies, ...trendingTV,
-          ...searchResults, ...Object.values(savedMoviesCache),
-          selectedMovie,
-        ].filter(Boolean);
-        const movieData = allMovies.find(m => m.id === id) ?? { id, mediaType };
-        addSavedToSupabase(user.id, movieData);
-      }
+    if (removing) {
+      removeSavedFromSupabase(user.id, id);
+    } else {
+      const allMovies = [
+        ...popularMovies, ...topRatedMovies, ...trendingMovies, ...trendingTV,
+        ...searchResults, ...Object.values(savedMoviesCache),
+        selectedMovie,
+      ].filter(Boolean);
+      const movieData = allMovies.find(m => m.id === id) ?? { id, mediaType };
+      addSavedToSupabase(user.id, movieData);
     }
     setSavedMovies(prev => removing ? prev.filter(x => x !== id) : [...prev, id]);
   }
@@ -1114,7 +1128,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -1286,7 +1300,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -1402,7 +1416,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -1911,7 +1925,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -2058,7 +2072,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -2113,7 +2127,7 @@ function App() {
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <UserAvatar
                 user={user}
-                onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+                onSignOut={handleSignOut}
                 onShowAuth={() => setShowAuth(true)}
                 isAdmin={isAdmin}
                 onAdmin={() => setScreen("admin")}
@@ -2153,7 +2167,7 @@ function App() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
-              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onSignOut={handleSignOut}
               onShowAuth={() => setShowAuth(true)}
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
@@ -2205,7 +2219,7 @@ function App() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <UserAvatar
             user={user}
-            onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+            onSignOut={handleSignOut}
             onShowAuth={() => setShowAuth(true)}
             isAdmin={isAdmin}
             onAdmin={() => setScreen("admin")}
@@ -2300,6 +2314,26 @@ function App() {
       <div style={{ padding: "0 20px" }}>
         {savedCacheLoading && savedMovies.length > 0 && savedList.length === 0 ? (
           [...Array(Math.min(savedMovies.length, 3))].map((_, i) => <SkeletonCard key={i} />)
+        ) : !user ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: t.tm }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>🔐</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: t.tx }}>
+              Zaloguj się żeby zapisywać filmy
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
+              Twoja lista będzie synchronizowana na wszystkich urządzeniach
+            </div>
+            <button
+              onClick={() => setShowAuth(true)}
+              style={{
+                background: t.a, border: "none", borderRadius: 14,
+                color: "#0B0F1A", fontSize: 14, fontWeight: 800,
+                cursor: "pointer", padding: "12px 32px",
+              }}
+            >
+              Zaloguj się
+            </button>
+          </div>
         ) : savedList.length > 0 ? savedList.map(m => (
           <MovieCard
             key={m.id} movie={m}
