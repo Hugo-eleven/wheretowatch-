@@ -718,10 +718,11 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
   const [filterPlatform, setFilterPlatform] = useState("");
   const [err, setErr] = useState(null);
 
-  async function pick(params) {
+  async function pick(params, preferGenreName = null) {
     setLoading(true); setMovie(null); setErr(null);
     try {
       // Krok 1: pobierz stronę 1 żeby poznać total_pages
+      console.log("[RandomMovie] params:", JSON.stringify(params));
       const first = await discoverMovies({ ...params, page: 1 });
       const totalPages = Math.min(first.totalPages ?? 1, 500);
       console.log("[RandomMovie] total_pages:", first.totalPages, "→ używamy max:", totalPages);
@@ -739,8 +740,10 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
       }
 
       if (results.length) {
-        const film = results[Math.floor(Math.random() * results.length)];
-        console.log("[RandomMovie] wylosowany film:", film.title, "(id:", film.id, ")");
+        const film = { ...results[Math.floor(Math.random() * results.length)] };
+        // Jeśli użytkownik wybrał konkretny gatunek, pokaż go zamiast genre_ids[0]
+        if (preferGenreName) film.genre = preferGenreName;
+        console.log("[RandomMovie] wylosowany film:", film.title, "gatunek:", film.genre, "(id:", film.id, ")");
         setMovie(film);
       } else {
         setErr("Brak filmów spełniających kryteria. Spróbuj innych ustawień.");
@@ -759,11 +762,14 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
     savedMoviesData.forEach(m => { if (m.genre) counts[m.genre] = (counts[m.genre] || 0) + 1; });
     const topGenre = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
     const matched = genres.find(g => g.name === topGenre);
-    pick({ genreIds: matched ? [matched.id] : [], minRating: 6 });
+    pick({ genreIds: matched ? [matched.id] : [], minRating: 6 }, matched?.name ?? null);
   }
 
   function pickFiltered() {
-    pick({ genreIds: filterGenre ? [Number(filterGenre)] : [], minRating: filterRating, providerId: filterPlatform });
+    const genreId = filterGenre ? Number(filterGenre) : null;
+    const genreName = genreId ? (genres.find(g => g.id === genreId)?.name ?? null) : null;
+    console.log("[pickFiltered] genreId:", genreId, "genreName:", genreName, "minRating:", filterRating, "platform:", filterPlatform || "dowolna");
+    pick({ genreIds: genreId ? [genreId] : [], minRating: filterRating, providerId: filterPlatform }, genreName);
   }
 
   const SELECT_STYLE = {
