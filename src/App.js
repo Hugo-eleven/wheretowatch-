@@ -1160,7 +1160,7 @@ function App() {
               <SectionHeader>Popularne teraz</SectionHeader>
               <div className="carousel-desktop" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
                 {popularMovies.slice(0, 10).map(m => (
-                  <MovieCard key={m.id} movie={m} onOpen={openMovie} compact />
+                  <MovieCard key={m.id} movie={m} onOpen={openMovie} compact onToggleSaved={toggleSaved} saved={isSaved(m.id)} />
                 ))}
               </div>
             </div>
@@ -1399,7 +1399,16 @@ function App() {
           >
             ← Wróć
           </button>
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
+            />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
 
         {/* Hero */}
@@ -1418,6 +1427,21 @@ function App() {
                   loading="lazy"
                   style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }}
                 />
+                <button
+                  onClick={() => toggleSaved(m.id, m.mediaType ?? "movie")}
+                  style={{
+                    position: "absolute", top: 12, right: 12,
+                    width: 40, height: 40,
+                    background: "rgba(0,0,0,0.5)",
+                    border: "none", borderRadius: "50%",
+                    fontSize: 20, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    backdropFilter: "blur(6px)",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {isSaved(m.id) ? "❤️" : "🤍"}
+                </button>
                 <div style={{
                   position: "absolute", bottom: 0, left: 0, right: 0,
                   background: "linear-gradient(transparent, var(--t-hero-grad))",
@@ -1863,25 +1887,14 @@ function App() {
             </div>
           )}
 
-          <div style={{ marginBottom: 20 }}>
-            <button
-              onClick={() => toggleSaved(m.id, m.mediaType ?? "movie")}
-              style={{
-                width: "100%", padding: "16px", borderRadius: 16,
-                border: "2px solid " + (isSaved(m.id) ? t.a : t.b),
-                background: isSaved(m.id) ? t.ad : t.s,
-                color: isSaved(m.id) ? t.a : t.tx,
-                fontSize: 15, fontWeight: 700, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                gap: 8, transition: "all 0.15s",
-              }}
-            >
-              {isSaved(m.id) ? "❤️ Zapisano na liście" : "🤍 Dodaj do mojej listy"}
-            </button>
-
-          </div>
         </div>
 
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={u => { setUser(u); setShowAuth(false); }}
+          />
+        )}
         <Navigation screen="search" setScreen={setScreen} />
       </div>
     );
@@ -1895,8 +1908,23 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
+            />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={u => { setUser(u); setShowAuth(false); }}
+          />
+        )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ Sport na żywo</h2>
           <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Najbliższe transmisje w Polsce</p>
@@ -2027,8 +2055,23 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
+            />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={u => { setUser(u); setShowAuth(false); }}
+          />
+        )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 Kalendarz premier</h2>
           <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Nadchodzące premiery kinowe w Polsce</p>
@@ -2067,8 +2110,23 @@ function App() {
         <div style={WRAP}>
           <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Logo />
-            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <UserAvatar
+                user={user}
+                onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+                onShowAuth={() => setShowAuth(true)}
+                isAdmin={isAdmin}
+                onAdmin={() => setScreen("admin")}
+              />
+              <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+            </div>
           </div>
+          {showAuth && (
+            <AuthModal
+              onClose={() => setShowAuth(false)}
+              onAuth={u => { setUser(u); setShowAuth(false); }}
+            />
+          )}
           <div style={{ textAlign: "center", padding: "80px 20px", color: t.tm }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 6 }}>Brak dostępu</div>
@@ -2092,7 +2150,16 @@ function App() {
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Logo />
-          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <UserAvatar
+              user={user}
+              onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+              onShowAuth={() => setShowAuth(true)}
+              isAdmin={isAdmin}
+              onAdmin={() => setScreen("admin")}
+            />
+            <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+          </div>
         </div>
         <AdminPanel
           sportsEvents={effectiveSports}
@@ -2135,8 +2202,23 @@ function App() {
     <div style={WRAP}>
       <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Logo />
-        <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <UserAvatar
+            user={user}
+            onSignOut={() => { if (supabase) supabase.auth.signOut().then(() => setUser(null)); }}
+            onShowAuth={() => setShowAuth(true)}
+            isAdmin={isAdmin}
+            onAdmin={() => setScreen("admin")}
+          />
+          <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
+        </div>
       </div>
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onAuth={u => { setUser(u); setShowAuth(false); }}
+        />
+      )}
       <div style={{ padding: "8px 20px 20px" }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ Moja lista</h2>
         <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>

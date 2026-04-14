@@ -32,6 +32,23 @@ export function MovieCard({ movie, onOpen, onToggleSaved, saved, compact = false
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 40 }}>🎬</div>
           )}
         </div>
+        {/* Heart button */}
+        {onToggleSaved && (
+          <button
+            onClick={e => { e.stopPropagation(); onToggleSaved(movie.id, movie.mediaType); }}
+            style={{
+              position: "absolute", top: 8, right: 8,
+              width: 24, height: 24,
+              background: "rgba(0,0,0,0.45)",
+              border: "none", borderRadius: "50%",
+              fontSize: 13, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            {saved ? "❤️" : "🤍"}
+          </button>
+        )}
         {/* Gradient overlay with title */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
