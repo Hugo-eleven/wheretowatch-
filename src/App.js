@@ -197,24 +197,25 @@ function SkeletonRankingItem({ isLast }) {
 }
 
 function ErrorMsg({ msg }) {
+  const { t: tr } = useLanguage();
   return (
     <div style={{ textAlign: "center", padding: "40px 20px", color: t.tm }}>
       <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: t.d, marginBottom: 4 }}>Błąd połączenia</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: t.d, marginBottom: 4 }}>{tr('error_conn')}</div>
       <div style={{ fontSize: 12 }}>{msg}</div>
     </div>
   );
 }
 
-function daysUntil(dateStr) {
+function daysUntil(dateStr, tr) {
   if (!dateStr) return null;
   const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
-  if (diff <= 0) return "Już dostępne";
-  if (diff === 1) return "Jutro";
-  return `za ${diff} dni`;
+  if (diff <= 0) return tr ? tr('already_avail') : "Już dostępne";
+  if (diff === 1) return tr ? tr('tomorrow') : "Jutro";
+  return tr ? tr('in_days', { n: diff }) : `za ${diff} dni`;
 }
 
-function groupPremieresByWeek(movies) {
+function groupPremieresByWeek(movies, tr, language = "pl-PL") {
   const groups = {};
   movies.forEach(m => {
     const date = new Date(m.releaseDate);
@@ -236,21 +237,31 @@ function groupPremieresByWeek(movies) {
     .sort((a, b) => a.monday - b.monday)
     .map(({ monday, movies: ms }) => {
       const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-      const fmt = d => d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+      const fmt = d => d.toLocaleDateString(language, { day: "numeric", month: "short" });
       const range = `${fmt(monday)} – ${fmt(sunday)}`;
       const diffWeeks = Math.round((monday - thisMonday) / (7 * 86400000));
       let label;
-      if (diffWeeks === 0) label = `Ten tydzień · ${range}`;
-      else if (diffWeeks === 1) label = `Przyszły tydzień · ${range}`;
-      else label = `Za ${diffWeeks} ${diffWeeks < 5 ? "tygodnie" : "tygodni"} · ${range}`;
+      if (!tr) {
+        if (diffWeeks === 0) label = `Ten tydzień · ${range}`;
+        else if (diffWeeks === 1) label = `Przyszły tydzień · ${range}`;
+        else label = `Za ${diffWeeks} ${diffWeeks < 5 ? "tygodnie" : "tygodni"} · ${range}`;
+      } else if (diffWeeks === 0) {
+        label = `${tr('this_week')} · ${range}`;
+      } else if (diffWeeks === 1) {
+        label = `${tr('next_week')} · ${range}`;
+      } else {
+        const weeksNoun = diffWeeks < 5 ? tr('week_2_4') : tr('week_5');
+        label = `${tr('weeks_in')} ${diffWeeks} ${weeksNoun} · ${range}`;
+      }
       return { label, movies: ms };
     });
 }
 
 function PremiereCard({ movie, onOpen }) {
-  const days = daysUntil(movie.releaseDate);
+  const { t: tr, language } = useLanguage();
+  const days = daysUntil(movie.releaseDate, tr);
   const dateFormatted = movie.releaseDate
-    ? new Date(movie.releaseDate).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(movie.releaseDate).toLocaleDateString(language, { day: "numeric", month: "long", year: "numeric" })
     : null;
   return (
     <div
@@ -347,7 +358,8 @@ function TopTenCard({ movie, rank, onOpen }) {
 }
 
 function UpcomingCard({ movie, onOpen }) {
-  const days = daysUntil(movie.releaseDate);
+  const { t: tr } = useLanguage();
+  const days = daysUntil(movie.releaseDate, tr);
   const dateFormatted = movie.releaseDate
     ? movie.releaseDate.split("-").reverse().join(".")
     : null;
@@ -390,6 +402,7 @@ function UpcomingCard({ movie, onOpen }) {
 }
 
 function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
+  const { t: tr } = useLanguage();
   const [open, setOpen] = useState(false);
   if (!user) {
     return (
@@ -402,7 +415,7 @@ function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
           cursor: "pointer", padding: "5px 13px",
         }}
       >
-        Zaloguj się
+        {tr('header_login')}
       </button>
     );
   }
@@ -452,7 +465,7 @@ function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
                   borderBottom: "1px solid " + t.b,
                 }}
               >
-                🔧 Panel admina
+                {tr('admin_panel_btn')}
               </button>
             )}
             <button
@@ -464,7 +477,7 @@ function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
                 fontFamily: "inherit",
               }}
             >
-              👤 Mój profil
+              {tr('auth_my_profile')}
             </button>
             <button
               onClick={() => { onSignOut(); setOpen(false); }}
@@ -476,7 +489,7 @@ function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
                 borderTop: "1px solid " + t.b,
               }}
             >
-              ← Wyloguj się
+              {tr('header_logout')}
             </button>
           </div>
         </>
@@ -486,6 +499,7 @@ function UserAvatar({ user, onSignOut, onShowAuth, isAdmin, onAdmin }) {
 }
 
 function SplashScreen({ onDone }) {
+  const { t: tr } = useLanguage();
   return (
     <div style={{
       position: "fixed", inset: 0,
@@ -500,7 +514,7 @@ function SplashScreen({ onDone }) {
         <span style={{ color: "#E8ECF4" }}>Watch</span>
       </div>
       <div style={{ fontSize: 15, color: "#6B7394", marginBottom: 52, lineHeight: 1.65, maxWidth: 280 }}>
-        Znajdź gdzie obejrzeć filmy, seriale i sport w Polsce
+        {tr('splash_tagline')}
       </div>
       <button
         onClick={onDone}
@@ -512,13 +526,14 @@ function SplashScreen({ onDone }) {
           boxShadow: "0 4px 24px rgba(229,9,20,0.4)",
         }}
       >
-        Zaczynajmy
+        {tr('splash_start')}
       </button>
     </div>
   );
 }
 
 function HeroBanner({ movies, index, setIndex, onOpen }) {
+  const { t: tr } = useLanguage();
   const movie = movies[index];
   if (!movie?.backdrop) return null;
   return (
@@ -556,7 +571,7 @@ function HeroBanner({ movies, index, setIndex, onOpen }) {
             boxShadow: "0 2px 16px rgba(229,9,20,0.35)",
           }}
         >
-          Szczegóły
+          {tr('btn_details')}
         </button>
       </div>
       {/* dots */}
@@ -593,16 +608,17 @@ const RATING_LEGEND = [
   { label: "≥6.0", color: "#FFB547" },
   { label: "≥5.0", color: "#FF9800" },
   { label: "<5.0",  color: "#FF4D6A" },
-  { label: "brak",  color: "#2a2e42" },
+  { label: null,    color: "#2a2e42", key: "rating_no_data" },
 ];
 
 function RatingsGrid({ seasonsList, ratingsMap, loading, onLoadMore, remainingSeasons }) {
+  const { t: tr } = useLanguage();
   const [activeEp, setActiveEp] = useState(null);
 
   if (loading && (!ratingsMap || Object.keys(ratingsMap).length === 0)) {
     return (
       <div style={{ textAlign: "center", padding: "16px 0", color: t.tm, fontSize: 13 }}>
-        ⏳ Pobieranie ocen odcinków...
+        {tr('ratings_loading')}
       </div>
     );
   }
@@ -623,7 +639,7 @@ function RatingsGrid({ seasonsList, ratingsMap, loading, onLoadMore, remainingSe
         {RATING_LEGEND.map(item => (
           <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <div style={{ width: 11, height: 11, borderRadius: 3, background: item.color, border: "1px solid rgba(255,255,255,0.12)" }} />
-            <span style={{ fontSize: 10, color: t.tm, fontWeight: 600 }}>{item.label}</span>
+            <span style={{ fontSize: 10, color: t.tm, fontWeight: 600 }}>{item.label ?? tr(item.key)}</span>
           </div>
         ))}
       </div>
@@ -700,7 +716,7 @@ function RatingsGrid({ seasonsList, ratingsMap, loading, onLoadMore, remainingSe
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? "⏳ Ładowanie..." : `Załaduj więcej sezonów (${remainingSeasons} pozostałych)`}
+          {loading ? tr('general_loading') : tr('load_more_seasons', { n: remainingSeasons })}
         </button>
       )}
 
@@ -748,6 +764,7 @@ function RatingsGrid({ seasonsList, ratingsMap, loading, onLoadMore, remainingSe
 }
 
 function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
+  const { t: tr } = useLanguage();
   const [mode, setMode] = useState(null);
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -784,11 +801,11 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
         console.log("[RandomMovie] wylosowany film:", film.title, "gatunek:", film.genre, "(id:", film.id, ")");
         setMovie(film);
       } else {
-        setErr("Brak filmów spełniających kryteria. Spróbuj innych ustawień.");
+        setErr(tr('random_no_results'));
       }
     } catch (e) {
       console.error("[RandomMovie] błąd:", e);
-      setErr("Błąd połączenia z TMDB.");
+      setErr(tr('random_conn_error'));
     }
     setLoading(false);
   }
@@ -828,16 +845,16 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
         maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>🎲 Co obejrzeć dziś?</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{tr('random_title')}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: t.tm, cursor: "pointer", fontSize: 22 }}>×</button>
         </div>
 
         {!mode && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
-              { id: "random", emoji: "🎲", title: "Totalnie losowo", desc: "Zaskoczymy Cię filmem z popularnych tytułów" },
-              { id: "taste",  emoji: "❤️", title: "Na podstawie moich gustów", desc: "Filmy dopasowane do Twojej listy ulubionych" },
-              { id: "filter", emoji: "🎯", title: "Z filtrem", desc: "Wybierz gatunek, ocenę i platformę" },
+              { id: "random", emoji: "🎲", title: tr('random_totally'), desc: tr('random_totally_desc') },
+              { id: "taste",  emoji: "❤️", title: tr('random_taste'), desc: tr('random_taste_desc') },
+              { id: "filter", emoji: "🎯", title: tr('random_filter'), desc: tr('random_filter_desc') },
             ].map(m => (
               <button key={m.id} onClick={() => { setMode(m.id); setMovie(null); setErr(null); if (m.id === "random") pickRandom(); if (m.id === "taste") pickByTaste(); }}
                 style={{
@@ -858,50 +875,50 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 
         {mode === "filter" && !movie && !loading && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left", padding: 0 }}>← Wróć</button>
+            <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left", padding: 0 }}>{tr('back')}</button>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>GATUNEK</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('random_genre')}</div>
               <select value={filterGenre} onChange={e => setFilterGenre(e.target.value)} style={SELECT_STYLE}>
-                <option value="">Dowolny gatunek</option>
+                <option value="">{tr('any_genre')}</option>
                 {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>MINIMALNA OCENA: {filterRating.toFixed(1)}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('random_min_rating', { val: filterRating.toFixed(1) })}</div>
               <input type="range" min={5} max={9} step={0.5} value={filterRating} onChange={e => setFilterRating(Number(e.target.value))}
                 style={{ width: "100%", accentColor: t.a }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>PLATFORMA</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('random_platform')}</div>
               <select value={filterPlatform} onChange={e => setFilterPlatform(e.target.value)} style={SELECT_STYLE}>
-                <option value="">Dowolna platforma</option>
+                <option value="">{tr('random_any_platform')}</option>
                 {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <button onClick={pickFiltered} style={{
               background: "#E50914", border: "none", borderRadius: 14,
               color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", padding: "14px",
-            }}>🎲 Losuj!</button>
+            }}>{tr('random_pick_btn')}</button>
           </div>
         )}
 
         {loading && (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-            <div style={{ fontSize: 14, color: t.tm }}>Losujemy film dla Ciebie...</div>
+            <div style={{ fontSize: 14, color: t.tm }}>{tr('random_picking')}</div>
           </div>
         )}
 
         {err && (
           <div style={{ textAlign: "center", padding: "24px 0" }}>
             <div style={{ fontSize: 13, color: t.d, marginBottom: 12 }}>{err}</div>
-            <button onClick={() => setMode(null)} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 20px" }}>Spróbuj ponownie</button>
+            <button onClick={() => setMode(null)} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 20px" }}>{tr('retry')}</button>
           </div>
         )}
 
         {movie && !loading && (
           <div>
-            <button onClick={() => { setMode(null); setMovie(null); }} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0, marginBottom: 16 }}>← Zmień tryb</button>
+            <button onClick={() => { setMode(null); setMovie(null); }} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0, marginBottom: 16 }}>{tr('random_change_mode')}</button>
             <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 18, overflow: "hidden" }}>
               {movie.poster && (
                 <img src={movie.poster} alt={movie.title} style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} />
@@ -919,11 +936,11 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
                   <button onClick={() => { onOpen(movie); onClose(); }} style={{
                     flex: 1, background: "#E50914", border: "none", borderRadius: 12,
                     color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", padding: "12px",
-                  }}>Szczegóły</button>
+                  }}>{tr('btn_details')}</button>
                   <button onClick={() => { if (mode === "random") pickRandom(); else if (mode === "taste") pickByTaste(); else pickFiltered(); }} style={{
                     flex: 1, background: t.s, border: "1.5px solid " + t.b, borderRadius: 12,
                     color: t.a, fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "12px",
-                  }}>🎲 Losuj ponownie</button>
+                  }}>{tr('random_pick_again')}</button>
                 </div>
               </div>
             </div>
@@ -935,7 +952,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 }
 
 function App() {
-  const { language, region, setLanguage, setRegion } = useLanguage();
+  const { language, region, setLanguage, setRegion, t: tr } = useLanguage();
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
 
@@ -997,8 +1014,8 @@ function App() {
   const [trendingTV, setTrendingTV] = useState([]);
   const [upcomingMovies, setUpcomingMovies] = useState([]);
 
-  // Label "Podobne" vs "Rekomendowane"
-  const [similarLabel, setSimilarLabel] = useState("Podobne filmy");
+  // Label "Podobne" vs "Rekomendowane" — stores translation key
+  const [similarLabel, setSimilarLabel] = useState("similar_films");
 
   // Auth
   const [user, setUser] = useState(null);
@@ -1065,7 +1082,7 @@ function App() {
   useEffect(() => {
     if (!loginToast) return;
     const el = document.createElement('div');
-    el.textContent = '🔐 Zaloguj się, aby dodawać do listy';
+    el.textContent = tr('login_toast');
     el.style.cssText = [
       'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
       'background:#141929', 'border:1.5px solid #00E5A0', 'color:#E8ECF4',
@@ -1314,16 +1331,16 @@ function App() {
         .sort((a, b) => (b.imdb ?? 0) - (a.imdb ?? 0));
       if (goodSimilar.length >= 3) {
         setSimilarMovies(goodSimilar);
-        setSimilarLabel("Podobne filmy");
+        setSimilarLabel("similar_films");
       } else {
         try {
           const recs = await fetchRecommendations(movie.id, mediaType);
           const goodRecs = recs.filter(m => (m.imdb ?? 0) >= 6.0);
           setSimilarMovies(goodRecs.length > 0 ? goodRecs : goodSimilar);
-          setSimilarLabel("Rekomendowane");
+          setSimilarLabel("recommended");
         } catch {
           setSimilarMovies(goodSimilar);
-          setSimilarLabel("Podobne filmy");
+          setSimilarLabel("similar_films");
         }
       }
 
@@ -1457,7 +1474,7 @@ function App() {
                 boxShadow: "0 4px 24px rgba(229,9,20,0.35)",
               }}
             >
-              🎲 Co obejrzeć dziś?
+              {tr('home_what_to_watch')}
             </button>
           </div>
         )}
@@ -1477,13 +1494,13 @@ function App() {
         ) : homeLoading ? (
           <>
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
-              <SectionHeader>Popularne teraz</SectionHeader>
+              <SectionHeader>{tr('home_popular')}</SectionHeader>
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {[...Array(5)].map((_, i) => <SkeletonCompact key={i} />)}
               </div>
             </div>
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
-              <SectionHeader>Najwyżej oceniane</SectionHeader>
+              <SectionHeader>{tr('home_top_rated')}</SectionHeader>
               <div style={{
                 background: t.s, borderRadius: 18,
                 border: "1px solid " + t.b, overflow: "hidden",
@@ -1496,7 +1513,7 @@ function App() {
           <>
             {/* Popularne teraz */}
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
-              <SectionHeader>Popularne teraz</SectionHeader>
+              <SectionHeader>{tr('home_popular')}</SectionHeader>
               <div className="carousel-desktop" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
                 {popularMovies.slice(0, 10).map(m => (
                   <MovieCard key={m.id} movie={m} onOpen={openMovie} compact onToggleSaved={toggleSaved} saved={isSaved(m.id)} />
@@ -1507,9 +1524,9 @@ function App() {
             {/* Ranking z tabami */}
             <div style={{ padding: "0 20px", marginBottom: 28 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <SectionHeader>{rankingTab === "top_rated" ? "Najwyżej oceniane" : "Popularne teraz"}</SectionHeader>
+                <SectionHeader>{rankingTab === "top_rated" ? tr('home_top_rated') : tr('home_popular')}</SectionHeader>
                 <div style={{ display: "flex", gap: 6 }}>
-                  {[{ id: "top_rated", label: "TMDB Top" }, { id: "popular", label: "Popularne" }].map(tab => (
+                  {[{ id: "top_rated", label: tr('tmdb_top') }, { id: "popular", label: tr('tmdb_popular') }].map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setRankingTab(tab.id)}
@@ -1547,7 +1564,7 @@ function App() {
             {/* Top 10 Filmów */}
             {trendingMovies.length > 0 && (
               <div style={{ padding: "0 20px", marginBottom: 28 }}>
-                <SectionHeader>Top 10 Filmów w Polsce</SectionHeader>
+                <SectionHeader>{tr('top10_movies')}</SectionHeader>
                 <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 8, scrollBehavior: "smooth" }}>
                   {trendingMovies.map((m, i) => (
                     <TopTenCard key={m.id} movie={m} rank={i + 1} onOpen={openMovie} />
@@ -1559,7 +1576,7 @@ function App() {
             {/* Top 10 Seriali */}
             {trendingTV.length > 0 && (
               <div style={{ padding: "0 20px", marginBottom: 28 }}>
-                <SectionHeader>Top 10 Seriali w Polsce</SectionHeader>
+                <SectionHeader>{tr('top10_series')}</SectionHeader>
                 <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 8, scrollBehavior: "smooth" }}>
                   {trendingTV.map((m, i) => (
                     <TopTenCard key={m.id} movie={m} rank={i + 1} onOpen={openMovie} />
@@ -1571,7 +1588,7 @@ function App() {
             {/* Wkrótce w kinach */}
             {upcomingMovies.length > 0 && (
               <div style={{ padding: "0 20px", marginBottom: 28 }}>
-                <SectionHeader>Wkrótce w kinach</SectionHeader>
+                <SectionHeader>{tr('coming_cinemas')}</SectionHeader>
                 <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollBehavior: "smooth" }}>
                   {upcomingMovies.map(m => (
                     <UpcomingCard key={m.id} movie={m} onOpen={openMovie} />
@@ -1583,12 +1600,12 @@ function App() {
             {/* Sport */}
             <div style={{ padding: "0 20px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <SectionHeader>Nadchodzące transmisje</SectionHeader>
+                <SectionHeader>{tr('upcoming_broadcasts')}</SectionHeader>
                 <button
                   onClick={() => setScreen("sports")}
                   style={{ background: "none", border: "none", color: t.a, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                 >
-                  Więcej →
+                  {tr('more_arrow')}
                 </button>
               </div>
               {effectiveSports.slice(0, 3).map(s => <SportCard key={s.id} sport={s} />)}
@@ -1618,9 +1635,9 @@ function App() {
   // ====== SEARCH ======
   if (screen === "search") {
     const SEARCH_FILTERS = [
-      { id: "all", label: "Wszystko" },
-      { id: "movie", label: "🎬 Filmy" },
-      { id: "tv", label: "📺 Seriale" },
+      { id: "all", label: tr('all_tab') },
+      { id: "movie", label: tr('movies_tab') },
+      { id: "tv", label: tr('series_tab') },
     ];
     return (
       <div style={WRAP}>
@@ -1653,11 +1670,11 @@ function App() {
           return (
             <>
               <div style={{ padding: "8px 20px 12px" }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>Wyszukaj</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>{tr('search_title')}</h2>
                 <div style={{ position: "relative" }}>
                   <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</span>
                   <input
-                    type="text" placeholder="Tytuł, gatunek..."
+                    type="text" placeholder={tr('search_placeholder')}
                     value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     style={{
                       width: "100%", background: t.s,
@@ -1686,7 +1703,7 @@ function App() {
                     borderRadius: 20, color: hasFilters ? t.a : t.tm,
                     fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "7px 14px",
                   }}>
-                    {showFilters ? "▲ Filtry" : "▼ Filtry"}{hasFilters ? " ●" : ""}
+                    {showFilters ? tr('filters_hide') : tr('filters_show')}{hasFilters ? " ●" : ""}
                   </button>
                 </div>
 
@@ -1695,7 +1712,7 @@ function App() {
                   <div style={{ marginTop: 14, background: t.s, border: "1px solid " + t.b, borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
                     {/* Gatunki */}
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 8, textTransform: "uppercase" }}>Gatunek</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 8, textTransform: "uppercase" }}>{tr('genre')}</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {genres.map(g => {
                           const active = filterGenreIds.includes(g.id);
@@ -1714,31 +1731,31 @@ function App() {
                     {/* Rok + Ocena */}
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Rok od</div>
-                        <input type="number" placeholder="np. 2000" value={filterYearFrom} onChange={e => setFilterYearFrom(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('year_from')}</div>
+                        <input type="number" placeholder="2000" value={filterYearFrom} onChange={e => setFilterYearFrom(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Rok do</div>
-                        <input type="number" placeholder="np. 2024" value={filterYearTo} onChange={e => setFilterYearTo(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('year_to')}</div>
+                        <input type="number" placeholder="2024" value={filterYearTo} onChange={e => setFilterYearTo(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }} />
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Minimalna ocena: {filterMinRating > 0 ? filterMinRating.toFixed(1) : "brak"}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{filterMinRating > 0 ? tr('min_rating', { val: filterMinRating.toFixed(1) }) : tr('min_rating_none')}</div>
                       <input type="range" min={0} max={9} step={0.5} value={filterMinRating} onChange={e => setFilterMinRating(Number(e.target.value))} style={{ width: "100%", accentColor: t.a }} />
                     </div>
 
                     {/* Platforma + Kraj */}
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Platforma</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('platform')}</div>
                         <select value={filterPlatformId} onChange={e => setFilterPlatformId(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
-                          <option value="">Dowolna</option>
+                          <option value="">{tr('any_platform')}</option>
                           {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>Kraj produkcji</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('country')}</div>
                         <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
                           {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
                         </select>
@@ -1749,10 +1766,10 @@ function App() {
                       <button onClick={() => { setFilterGenreIds([]); setFilterYearFrom(""); setFilterYearTo(""); setFilterMinRating(0); setFilterPlatformId(""); setFilterCountry(""); }} style={{
                         background: "none", border: "1px solid " + t.d, borderRadius: 10,
                         color: t.d, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px",
-                      }}>Wyczyść filtry</button>
+                      }}>{tr('clear_filters')}</button>
                     )}
 
-                    {usingDiscover && <div style={{ fontSize: 11, color: t.tm, textAlign: "center" }}>🎯 Wyniki z discover (bez tekstu)</div>}
+                    {usingDiscover && <div style={{ fontSize: 11, color: t.tm, textAlign: "center" }}>{tr('discover_label')}</div>}
                   </div>
                 )}
               </div>
@@ -1770,7 +1787,7 @@ function App() {
                   ) : (
                     <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-                      <div style={{ fontSize: 14 }}>Brak filmów spełniających kryteria</div>
+                      <div style={{ fontSize: 14 }}>{tr('no_results_filters')}</div>
                     </div>
                   )
                 ) : searchLoading ? (
@@ -1784,13 +1801,13 @@ function App() {
                 ) : searchQuery.trim() ? (
                   <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Brak wyników</div>
-                    <div style={{ fontSize: 13 }}>Spróbuj innej frazy</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{tr('no_results')}</div>
+                    <div style={{ fontSize: 13 }}>{tr('try_other')}</div>
                   </div>
                 ) : (
                   <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-                    <div style={{ fontSize: 13 }}>Wpisz tytuł lub ustaw filtry</div>
+                    <div style={{ fontSize: 13 }}>{tr('enter_title')}</div>
                   </div>
                 )}
               </div>
@@ -1824,7 +1841,7 @@ function App() {
               transition: "all 0.15s",
             }}
           >
-            ← Wróć
+            {tr('back')}
           </button>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
@@ -1929,7 +1946,7 @@ function App() {
           {/* Trailer YouTube */}
           {trailerKey && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Trailer</SectionHeader>
+              <SectionHeader>{tr('trailer')}</SectionHeader>
               <iframe
                 src={`https://www.youtube.com/embed/${trailerKey}`}
                 style={{
@@ -1947,7 +1964,7 @@ function App() {
           {/* Szczegóły serialu */}
           {m.mediaType === "tv" && (m.seasons || m.episodes) && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Szczegóły serialu</SectionHeader>
+              <SectionHeader>{tr('series_details')}</SectionHeader>
               <div style={{ display: "flex", gap: 10 }}>
                 {m.seasons != null && (
                   <div style={{
@@ -1956,7 +1973,7 @@ function App() {
                   }}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: t.a }}>{m.seasons}</div>
                     <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>
-                      {m.seasons === 1 ? "Sezon" : m.seasons < 5 ? "Sezony" : "Sezonów"}
+                      {m.seasons === 1 ? tr('season_1') : m.seasons < 5 ? tr('season_2_4') : tr('season_5')}
                     </div>
                   </div>
                 )}
@@ -1966,7 +1983,7 @@ function App() {
                     border: "1px solid " + t.b, padding: "14px 12px", textAlign: "center",
                   }}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: t.a }}>{m.episodes}</div>
-                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>Odcinków</div>
+                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>{tr('episodes_count')}</div>
                   </div>
                 )}
                 {m.status != null && (
@@ -1979,12 +1996,12 @@ function App() {
                       color: m.status === "Ended" ? t.tm : t.a,
                       lineHeight: 1.4,
                     }}>
-                      {m.status === "Ended" ? "Zakończony"
-                        : m.status === "Returning Series" ? "W toku"
-                        : m.status === "Canceled" ? "Anulowany"
+                      {m.status === "Ended" ? tr('status_ended')
+                        : m.status === "Returning Series" ? tr('status_ongoing')
+                        : m.status === "Canceled" ? tr('status_cancelled')
                         : m.status}
                     </div>
-                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>Status</div>
+                    <div style={{ fontSize: 11, color: t.tm, marginTop: 3 }}>{tr('status_label')}</div>
                   </div>
                 )}
               </div>
@@ -1994,7 +2011,7 @@ function App() {
           {/* Lista sezonów */}
           {m.mediaType === "tv" && m.seasonsList?.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Sezony</SectionHeader>
+              <SectionHeader>{tr('seasons_list')}</SectionHeader>
               {m.seasonsList.map(season => {
                 const isOpen = selectedSeason === season.number;
                 const sortedEps = episodeSort === "rating"
@@ -2483,7 +2500,7 @@ function App() {
 
   // ====== PREMIERES ======
   if (screen === "premieres") {
-    const grouped = groupPremieresByWeek(premieresMovies);
+    const grouped = groupPremieresByWeek(premieresMovies, tr, language);
     return (
       <div style={WRAP}>
         <div style={{ padding: "22px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2660,7 +2677,7 @@ function App() {
             <div style={{ marginBottom: 28 }}>
               <div style={LABEL_STYLE}>Najlepsza platforma dla Twojej listy</div>
               {savedProvidersLoading && plRanking.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ Ładowanie...</div>
+                <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ {tr('general_loading')}</div>
               ) : plRanking.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {plRanking.map(({ name, count }, i) => {
@@ -2814,7 +2831,7 @@ function App() {
         />
       )}
       <div style={{ padding: "8px 20px 20px" }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ Moja lista</h2>
+        <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ {tr('list_title')}</h2>
         <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>
           {!user ? "Zaloguj się, żeby zobaczyć swoją listę"
             : savedMovies.length > 0
@@ -2926,7 +2943,7 @@ function App() {
           <div style={{ textAlign: "center", padding: "60px 20px", color: t.tm }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>🤍</div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: t.tx }}>
-              Twoja lista jest pusta
+              {tr('list_empty')}
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.5 }}>
               Dodaj filmy klikając 🤍 przy tytule

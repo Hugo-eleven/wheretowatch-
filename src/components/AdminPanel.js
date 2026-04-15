@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { t } from "../theme";
+import { t as theme } from "../theme";
+import { useLanguage } from "../context/LanguageContext";
 import { addSportsEvent, deleteSportsEvent } from "../services/supabase";
 
-const DISCIPLINES = [
-  { id: "football",   label: "Piłka nożna", icon: "⚽" },
-  { id: "tennis",     label: "Tenis",        icon: "🎾" },
-  { id: "f1",         label: "F1",           icon: "🏎️" },
-  { id: "basketball", label: "Koszykówka",   icon: "🏀" },
-  { id: "volleyball", label: "Siatkówka",    icon: "🏐" },
+const DISCIPLINE_IDS = [
+  { id: "football",   icon: "⚽" },
+  { id: "tennis",     icon: "🎾" },
+  { id: "f1",         icon: "🏎️" },
+  { id: "basketball", icon: "🏀" },
+  { id: "volleyball", icon: "🏐" },
 ];
 
 const PLATFORM_OPTIONS = [
@@ -22,13 +23,6 @@ const PLATFORM_OPTIONS = [
   { name: "WP Pilot",      price: "Za darmo"  },
 ];
 
-const INPUT = {
-  width: "100%", background: t.bg, border: "1.5px solid " + t.b,
-  borderRadius: 12, padding: "12px 14px", color: t.tx,
-  fontSize: 14, outline: "none", boxSizing: "border-box",
-  fontFamily: "inherit", marginBottom: 10,
-};
-
 const EMPTY_FORM = {
   discipline: "football",
   event: "",
@@ -38,6 +32,15 @@ const EMPTY_FORM = {
 };
 
 export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack }) {
+  const { t } = useLanguage();
+
+  const INPUT = {
+    width: "100%", background: theme.bg, border: "1.5px solid " + theme.b,
+    borderRadius: 12, padding: "12px 14px", color: theme.tx,
+    fontSize: 14, outline: "none", boxSizing: "border-box",
+    fontFamily: "inherit", marginBottom: 10,
+  };
+
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -59,7 +62,7 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.event.trim() || !form.date.trim()) {
-      setError("Uzupełnij nazwę wydarzenia i datę.");
+      setError(t('admin_fill_req'));
       return;
     }
     setSaving(true);
@@ -69,9 +72,9 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
       const added = await addSportsEvent(form);
       onEventAdded(added);
       setForm(EMPTY_FORM);
-      setSuccess("Wydarzenie dodane pomyślnie!");
+      setSuccess(t('admin_saved_ok'));
     } catch (err) {
-      setError(err.message ?? "Błąd zapisu.");
+      setError(err.message ?? t('admin_save_err'));
     } finally {
       setSaving(false);
     }
@@ -83,7 +86,7 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
       await deleteSportsEvent(id);
       onEventDeleted(id);
     } catch (err) {
-      setError("Błąd usuwania: " + (err.message ?? ""));
+      setError(t('admin_delete_err') + (err.message ?? ""));
     } finally {
       setDeletingId(null);
     }
@@ -95,84 +98,84 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
         <button
           onClick={onBack}
           style={{
-            background: t.s, border: "1px solid " + t.b, borderRadius: 10,
-            color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "7px 14px",
+            background: theme.s, border: "1px solid " + theme.b, borderRadius: 10,
+            color: theme.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "7px 14px",
           }}
         >
-          ← Wróć
+          {t('back')}
         </button>
-        <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>🔧 Panel admina</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{t('admin_title')}</h2>
       </div>
 
       {/* Formularz */}
       <div style={{
-        background: t.s, borderRadius: 18, border: "1px solid " + t.b,
+        background: theme.s, borderRadius: 18, border: "1px solid " + theme.b,
         padding: 20, marginBottom: 28,
       }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: t.a, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
-          Dodaj wydarzenie sportowe
+        <div style={{ fontSize: 13, fontWeight: 800, color: theme.a, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
+          {t('admin_add_event')}
         </div>
 
         <form onSubmit={handleSubmit}>
           {/* Dyscyplina */}
-          <div style={{ fontSize: 11, color: t.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Dyscyplina
+          <div style={{ fontSize: 11, color: theme.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t('admin_discipline')}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {DISCIPLINES.map(d => (
+            {DISCIPLINE_IDS.map(d => (
               <button
                 key={d.id}
                 type="button"
                 onClick={() => setForm(f => ({ ...f, discipline: d.id }))}
                 style={{
                   padding: "7px 14px", borderRadius: 20, cursor: "pointer",
-                  border: "1.5px solid " + (form.discipline === d.id ? t.a : t.b),
-                  background: form.discipline === d.id ? t.ad : t.bg,
-                  color: form.discipline === d.id ? t.a : t.tm,
+                  border: "1.5px solid " + (form.discipline === d.id ? theme.a : theme.b),
+                  background: form.discipline === d.id ? theme.ad : theme.bg,
+                  color: form.discipline === d.id ? theme.a : theme.tm,
                   fontSize: 12, fontWeight: 700,
                 }}
               >
-                {d.icon} {d.label}
+                {d.icon} {t('disc_' + d.id)}
               </button>
             ))}
           </div>
 
           {/* Nazwa wydarzenia */}
-          <div style={{ fontSize: 11, color: t.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Nazwa wydarzenia
+          <div style={{ fontSize: 11, color: theme.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t('admin_event_name')}
           </div>
           <input
             style={INPUT}
-            placeholder="np. Liga Mistrzów — Finał"
+            placeholder={t('admin_ph_event')}
             value={form.event}
             onChange={e => setForm(f => ({ ...f, event: e.target.value }))}
           />
 
           {/* Drużyny */}
-          <div style={{ fontSize: 11, color: t.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Drużyny / uczestnicy
+          <div style={{ fontSize: 11, color: theme.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t('admin_teams')}
           </div>
           <input
             style={INPUT}
-            placeholder="np. Real Madryt vs Barcelona"
+            placeholder={t('admin_ph_teams')}
             value={form.teams}
             onChange={e => setForm(f => ({ ...f, teams: e.target.value }))}
           />
 
           {/* Data */}
-          <div style={{ fontSize: 11, color: t.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Data i godzina (wyświetlana)
+          <div style={{ fontSize: 11, color: theme.tm, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t('admin_date')}
           </div>
           <input
             style={INPUT}
-            placeholder="np. 30 maj 2026, 21:00"
+            placeholder={t('admin_ph_date')}
             value={form.date}
             onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
           />
 
           {/* Platformy */}
-          <div style={{ fontSize: 11, color: t.tm, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Platformy transmisji
+          <div style={{ fontSize: 11, color: theme.tm, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t('admin_platforms_label')}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
             {PLATFORM_OPTIONS.map(p => {
@@ -184,9 +187,9 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
                   onClick={() => togglePlatform(p)}
                   style={{
                     padding: "6px 12px", borderRadius: 10, cursor: "pointer",
-                    border: "1.5px solid " + (selected ? t.a : t.b),
-                    background: selected ? t.ad : t.bg,
-                    color: selected ? t.a : t.tm,
+                    border: "1.5px solid " + (selected ? theme.a : theme.b),
+                    background: selected ? theme.ad : theme.bg,
+                    color: selected ? theme.a : theme.tm,
                     fontSize: 12, fontWeight: 600,
                   }}
                 >
@@ -198,12 +201,12 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
           </div>
 
           {error && (
-            <div style={{ color: t.d, fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
+            <div style={{ color: theme.d, fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
               {error}
             </div>
           )}
           {success && (
-            <div style={{ color: t.a, fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
+            <div style={{ color: theme.a, fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
               {success}
             </div>
           )}
@@ -213,43 +216,43 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
             disabled={saving}
             style={{
               width: "100%", padding: "14px", borderRadius: 14,
-              background: t.a, border: "none", color: "#0B0F1A",
+              background: theme.a, border: "none", color: "#0B0F1A",
               fontSize: 14, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer",
               opacity: saving ? 0.6 : 1, fontFamily: "inherit",
             }}
           >
-            {saving ? "Zapisywanie..." : "+ Dodaj wydarzenie"}
+            {saving ? t('admin_saving') : t('admin_add_btn')}
           </button>
         </form>
       </div>
 
       {/* Lista wydarzeń */}
-      <div style={{ fontSize: 13, fontWeight: 800, color: t.tm, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-        Wszystkie wydarzenia ({sportsEvents.length})
+      <div style={{ fontSize: 13, fontWeight: 800, color: theme.tm, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+        {t('admin_all_events', { n: sportsEvents.length })}
       </div>
       {sportsEvents.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 0", color: t.tm, fontSize: 13 }}>
-          Brak wydarzeń w bazie. Dodaj pierwsze powyżej.
+        <div style={{ textAlign: "center", padding: "32px 0", color: theme.tm, fontSize: 13 }}>
+          {t('admin_no_events')}
         </div>
       ) : (
         sportsEvents.map(s => (
           <div
             key={s.id}
             style={{
-              background: t.s, borderRadius: 14, border: "1px solid " + t.b,
+              background: theme.s, borderRadius: 14, border: "1px solid " + theme.b,
               padding: "12px 16px", marginBottom: 8,
               display: "flex", alignItems: "center", gap: 12,
             }}
           >
             <span style={{ fontSize: 20, flexShrink: 0 }}>{s.icon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: t.tx }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: theme.tx }}>
                 {s.event}
               </div>
-              <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: theme.tm, marginTop: 2 }}>
                 {s.teams} · {s.date}
               </div>
-              <div style={{ fontSize: 11, color: t.a, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: theme.a, marginTop: 2 }}>
                 {s.platforms.map(p => p.name).join(", ") || "—"}
               </div>
             </div>
@@ -258,12 +261,12 @@ export function AdminPanel({ sportsEvents, onEventAdded, onEventDeleted, onBack 
               disabled={deletingId === s.id}
               style={{
                 background: "rgba(255,77,106,0.12)", border: "1px solid rgba(255,77,106,0.3)",
-                borderRadius: 10, color: t.d, fontSize: 12, fontWeight: 700,
+                borderRadius: 10, color: theme.d, fontSize: 12, fontWeight: 700,
                 cursor: "pointer", padding: "6px 12px", flexShrink: 0,
                 opacity: deletingId === s.id ? 0.5 : 1,
               }}
             >
-              Usuń
+              {t('admin_delete')}
             </button>
           </div>
         ))

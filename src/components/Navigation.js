@@ -1,13 +1,16 @@
+import { useLanguage } from "../context/LanguageContext";
+
 const NAV_ITEMS = [
-  { id: "home",      label: "Odkrywaj", emoji: "🏠" },
-  { id: "search",    label: "Szukaj",   emoji: "🔍" },
-  { id: "premieres", label: "Premiery", emoji: "📅" },
-  { id: "sports",    label: "Sport",    emoji: "⚽" },
-  { id: "platforms", label: "Ceny",     emoji: "💰" },
-  { id: "saved",     label: "Lista",    emoji: "❤️" },
+  { id: "home",      key: "nav_discover", emoji: "🏠" },
+  { id: "search",    key: "nav_search",   emoji: "🔍" },
+  { id: "premieres", key: "nav_premieres", emoji: "📅" },
+  { id: "sports",    key: "nav_sports",   emoji: "⚽" },
+  { id: "platforms", key: "nav_prices",   emoji: "💰" },
+  { id: "saved",     key: "nav_list",     emoji: "❤️" },
 ];
 
 export function Navigation({ screen, setScreen }) {
+  const { t } = useLanguage();
   return (
     <div style={{
       position: "fixed",
@@ -50,7 +53,7 @@ export function Navigation({ screen, setScreen }) {
             }}
           >
             <span style={{ fontSize: 19, lineHeight: 1 }}>{item.emoji}</span>
-            {item.label}
+            {t(item.key)}
             {active && <div className="nav-tab-underline" />}
           </button>
         );
