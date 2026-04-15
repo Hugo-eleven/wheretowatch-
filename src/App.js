@@ -1092,7 +1092,7 @@ function App() {
     ].join(';');
     document.body.appendChild(el);
     return () => { if (document.body.contains(el)) document.body.removeChild(el); };
-  }, [loginToast]);
+  }, [loginToast, tr]);
 
   // Ładuj wszystkie dane startowe — re-fetchuj przy zmianie języka/regionu
   useEffect(() => {
