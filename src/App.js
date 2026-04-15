@@ -80,6 +80,7 @@ function Logo() {
 }
 
 function ThemeToggle({ darkMode, toggle }) {
+  const { t: tr } = useLanguage();
   return (
     <button
       onClick={toggle}
@@ -89,7 +90,7 @@ function ThemeToggle({ darkMode, toggle }) {
         cursor: "pointer", padding: "4px 12px",
         transition: "all 0.15s",
       }}
-      title={darkMode ? "Jasny motyw" : "Ciemny motyw"}
+      title={darkMode ? tr('theme_light') : tr('theme_dark')}
     >
       {darkMode ? "☀️" : "🌙"}
     </button>
@@ -845,7 +846,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
         maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>{tr('random_title')}</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{tr('random_random_movie')}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: t.tm, cursor: "pointer", fontSize: 22 }}>×</button>
         </div>
 
@@ -875,9 +876,9 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 
         {mode === "filter" && !movie && !loading && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left", padding: 0 }}>{tr('back')}</button>
+            <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left", padding: 0 }}>{tr('btn_back')}</button>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('random_genre')}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('filter_genre')}</div>
               <select value={filterGenre} onChange={e => setFilterGenre(e.target.value)} style={SELECT_STYLE}>
                 <option value="">{tr('any_genre')}</option>
                 {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -889,9 +890,9 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
                 style={{ width: "100%", accentColor: t.a }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('random_platform')}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.tm, marginBottom: 6 }}>{tr('filter_platform')}</div>
               <select value={filterPlatform} onChange={e => setFilterPlatform(e.target.value)} style={SELECT_STYLE}>
-                <option value="">{tr('random_any_platform')}</option>
+                <option value="">{tr('filter_any_platform')}</option>
                 {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
@@ -912,13 +913,13 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
         {err && (
           <div style={{ textAlign: "center", padding: "24px 0" }}>
             <div style={{ fontSize: 13, color: t.d, marginBottom: 12 }}>{err}</div>
-            <button onClick={() => setMode(null)} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 20px" }}>{tr('retry')}</button>
+            <button onClick={() => setMode(null)} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, color: t.a, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 20px" }}>{tr('btn_try_again')}</button>
           </div>
         )}
 
         {movie && !loading && (
           <div>
-            <button onClick={() => { setMode(null); setMovie(null); }} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0, marginBottom: 16 }}>{tr('random_change_mode')}</button>
+            <button onClick={() => { setMode(null); setMovie(null); }} style={{ background: "none", border: "none", color: t.a, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0, marginBottom: 16 }}>{tr('btn_change_mode')}</button>
             <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 18, overflow: "hidden" }}>
               {movie.poster && (
                 <img src={movie.poster} alt={movie.title} style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} />
@@ -940,7 +941,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
                   <button onClick={() => { if (mode === "random") pickRandom(); else if (mode === "taste") pickByTaste(); else pickFiltered(); }} style={{
                     flex: 1, background: t.s, border: "1.5px solid " + t.b, borderRadius: 12,
                     color: t.a, fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "12px",
-                  }}>{tr('random_pick_again')}</button>
+                  }}>{tr('btn_random_again')}</button>
                 </div>
               </div>
             </div>
@@ -1824,9 +1825,9 @@ function App() {
   if (screen === "detail" && selectedMovie) {
     const m = selectedMovie;
     const providerGroups = [
-      { label: "Streaming", headerLabel: "🎬 Oglądaj w ramach subskrypcji", btnText: "Oglądaj", btnColor: "#E50914", items: selectedProviders?.flatrate ?? [] },
-      { label: "Wypożyczenie", headerLabel: "💰 Wypożycz", btnText: "Wypożycz", btnColor: "#2196F3", items: selectedProviders?.rent ?? [] },
-      { label: "Zakup", headerLabel: "🛒 Kup", btnText: "Kup", btnColor: "#4CAF50", items: selectedProviders?.buy ?? [] },
+      { label: tr('detail_streaming_label'), headerLabel: "🎬 " + tr('detail_streaming'), btnText: tr('btn_watch'), btnColor: "#E50914", items: selectedProviders?.flatrate ?? [] },
+      { label: tr('detail_rent_label'), headerLabel: "💰 " + tr('detail_rent'), btnText: tr('detail_rent'), btnColor: "#2196F3", items: selectedProviders?.rent ?? [] },
+      { label: tr('detail_buy_label'), headerLabel: "🛒 " + tr('detail_buy'), btnText: tr('detail_buy'), btnColor: "#4CAF50", items: selectedProviders?.buy ?? [] },
     ].filter(g => g.items.length > 0);
 
     return (
@@ -1841,7 +1842,7 @@ function App() {
               transition: "all 0.15s",
             }}
           >
-            {tr('back')}
+            {tr('btn_back')}
           </button>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
@@ -2048,7 +2049,7 @@ function App() {
                           {season.name}
                         </div>
                         <div style={{ fontSize: 11, color: t.tm, marginTop: 2 }}>
-                          {[season.airDate, season.episodeCount ? `${season.episodeCount} odcinków` : null].filter(Boolean).join(" · ")}
+                          {[season.airDate, season.episodeCount ? `${season.episodeCount} ${tr('episodes_count')}` : null].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                       <span style={{ fontSize: 12, color: t.tm }}>{isOpen ? "▲" : "▼"}</span>
@@ -2057,7 +2058,7 @@ function App() {
                     {isOpen && (
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                          {[{ id: "number", label: "Kolejność" }, { id: "rating", label: "Ocena ↓" }].map(mode => (
+                          {[{ id: "number", label: tr('sort_order') }, { id: "rating", label: tr('sort_rating') }].map(mode => (
                             <button
                               key={mode.id}
                               onClick={() => setEpisodeSort(mode.id)}
@@ -2131,7 +2132,7 @@ function App() {
           {/* Mapa ocen serialu */}
           {m.mediaType === "tv" && m.seasonsList?.length > 0 && (ratingsMapLoading || (ratingsMap && Object.keys(ratingsMap).length > 0)) && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Mapa ocen odcinków</SectionHeader>
+              <SectionHeader>{tr('ratings_map')}</SectionHeader>
               <div style={{
                 background: t.s, borderRadius: 18, border: "1px solid " + t.b,
                 padding: "14px 16px", overflowX: "auto",
@@ -2149,13 +2150,13 @@ function App() {
           )}
 
           <div style={{ marginBottom: 20 }}>
-            <SectionHeader>Opis</SectionHeader>
+            <SectionHeader>{tr('detail_description')}</SectionHeader>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis}</p>
           </div>
 
           {/* Obsada */}
           <div style={{ marginBottom: 20 }}>
-            <SectionHeader>Obsada</SectionHeader>
+            <SectionHeader>{tr('detail_cast')}</SectionHeader>
             {detailLoading ? (
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {[...Array(5)].map((_, i) => (
@@ -2211,7 +2212,7 @@ function App() {
           {/* Nagrody */}
           {ratings?.awards && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>Nagrody</SectionHeader>
+              <SectionHeader>{tr('detail_awards')}</SectionHeader>
               <div style={{
                 background: t.s, border: "1px solid " + t.b,
                 borderRadius: 14, padding: "14px 16px",
@@ -2234,7 +2235,7 @@ function App() {
           {/* Gdzie obejrzeć */}
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>
-              Gdzie obejrzeć {REGIONS.find(r => r.code === region)?.flag ?? ""} {REGIONS.find(r => r.code === region)?.name ?? region}
+              {tr('detail_where_to_watch')} {REGIONS.find(r => r.code === region)?.flag ?? ""} {REGIONS.find(r => r.code === region)?.name ?? region}
             </SectionHeader>
             {detailLoading ? (
               <div>
@@ -2319,7 +2320,7 @@ function App() {
                 textAlign: "center", color: t.tm, fontSize: 13,
               }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🌍</div>
-                Brak dostępnych platform w Polsce
+                {tr('no_providers_pl')}
               </div>
             )}
           </div>
@@ -2327,7 +2328,7 @@ function App() {
           {/* Podobne / Rekomendowane filmy */}
           {similarMovies.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <SectionHeader>{similarLabel}</SectionHeader>
+              <SectionHeader>{tr(similarLabel)}</SectionHeader>
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {similarMovies.slice(0, 8).map(s => (
                   <MovieCard key={s.id} movie={s} onOpen={openMovie} compact />
@@ -2376,8 +2377,8 @@ function App() {
           />
         )}
         <div style={{ padding: "8px 20px 16px" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ Sport na żywo</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Najbliższe transmisje w Polsce</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ {tr('sport_live')}</h2>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('sport_subtitle')}</p>
         </div>
         <div style={{ padding: "0 20px 16px", display: "flex", gap: 8, overflowX: "auto" }}>
           {DISCIPLINES.map(d => (
@@ -2403,7 +2404,7 @@ function App() {
           {/* Nadchodzące mecze z football-data.org — pogrupowane po dniach i ligach */}
           {showFootball && footballLoading && (
             <div style={{ marginBottom: 24 }}>
-              <SectionHeader>Nadchodzące mecze</SectionHeader>
+              <SectionHeader>{tr('sport_matches')}</SectionHeader>
               {[...Array(4)].map((_, i) => (
                 <div key={i} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, padding: "10px 14px", marginBottom: 6 }}>
                   <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%", marginBottom: 8 }} />
@@ -2434,7 +2435,7 @@ function App() {
             };
             return (
               <div style={{ marginBottom: 24 }}>
-                <SectionHeader>Nadchodzące mecze</SectionHeader>
+                <SectionHeader>{tr('sport_matches')}</SectionHeader>
                 {sortedDays.map(([dayKey, leagues]) => (
                   <div key={dayKey} style={{ marginBottom: 20 }}>
                     <div style={{
@@ -2476,20 +2477,20 @@ function App() {
           {/* Wydarzenia ręczne / planowane */}
           {filteredSports.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              {showFootball && <SectionHeader>Wydarzenia planowane</SectionHeader>}
+              {showFootball && <SectionHeader>{tr('sport_planned')}</SectionHeader>}
               {filteredSports.map(s => <SportCard key={s.id} sport={s} />)}
             </div>
           )}
           {filteredSports.length === 0 && !showFootball && !footballLoading && (
             <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
-              <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
+              <div style={{ fontSize: 14 }}>{tr('sport_no_events')}</div>
             </div>
           )}
           {filteredSports.length === 0 && showFootball && footballMatches.length === 0 && !footballLoading && (
             <div style={{ textAlign: "center", padding: "48px 0", color: t.tm }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
-              <div style={{ fontSize: 14 }}>Brak wydarzeń w tej kategorii</div>
+              <div style={{ fontSize: 14 }}>{tr('sport_no_events')}</div>
             </div>
           )}
         </div>
@@ -2524,8 +2525,8 @@ function App() {
           />
         )}
         <div style={{ padding: "8px 20px 16px" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 Kalendarz premier</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>Nadchodzące premiery kinowe w Polsce</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 {tr('premieres_calendar')}</h2>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('premieres_subtitle')}</p>
         </div>
 
         {premieresLoading ? (
@@ -2535,8 +2536,8 @@ function App() {
         ) : grouped.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: t.tm }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📅</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>Brak danych</div>
-            <div style={{ fontSize: 13 }}>Spróbuj ponownie za chwilę</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{tr('no_data')}</div>
+            <div style={{ fontSize: 13 }}>{tr('try_later')}</div>
           </div>
         ) : (
           <div style={{ padding: "0 20px" }}>
@@ -2581,8 +2582,8 @@ function App() {
           )}
           <div style={{ textAlign: "center", padding: "80px 20px", color: t.tm }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 6 }}>Brak dostępu</div>
-            <div style={{ fontSize: 13, marginBottom: 24 }}>Ta strona wymaga uprawnień administratora.</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{tr('admin_no_access')}</div>
+            <div style={{ fontSize: 13, marginBottom: 24 }}>{tr('admin_requires_perms')}</div>
             <button
               onClick={() => setScreen("home")}
               style={{
@@ -2591,7 +2592,7 @@ function App() {
                 cursor: "pointer", padding: "12px 28px",
               }}
             >
-              Wróć do strony głównej
+              {tr('btn_home')}
             </button>
           </div>
           <Navigation screen="home" setScreen={setScreen} />
@@ -2656,12 +2657,12 @@ function App() {
         </div>
         {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={u => { setUser(u); setShowAuth(false); }} />}
         <div style={{ padding: "8px 20px 20px" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>💰 Platformy streamingowe</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "0 0 24px" }}>Ceny i dostępność w Polsce</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>💰 {tr('platforms_title')}</h2>
+          <p style={{ fontSize: 13, color: t.tm, margin: "0 0 24px" }}>{tr('platforms_subtitle')}</p>
 
           {/* A) Tabela cen */}
           <div style={{ marginBottom: 28 }}>
-            <div style={LABEL_STYLE}>Cennik platform</div>
+            <div style={LABEL_STYLE}>{tr('compare_pricing')}</div>
             <div style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 16, overflow: "hidden" }}>
               {TMDB_PLATFORMS_PL.map((p, i) => (
                 <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: i < TMDB_PLATFORMS_PL.length - 1 ? "1px solid " + t.b : "none" }}>
@@ -2675,7 +2676,7 @@ function App() {
           {/* B) Porównywarka z listy */}
           {user && plSavedList.length > 0 && (
             <div style={{ marginBottom: 28 }}>
-              <div style={LABEL_STYLE}>Najlepsza platforma dla Twojej listy</div>
+              <div style={LABEL_STYLE}>{tr('best_platform_for_list')}</div>
               {savedProvidersLoading && plRanking.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ {tr('general_loading')}</div>
               ) : plRanking.length > 0 ? (
@@ -2694,21 +2695,21 @@ function App() {
                   })}
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Brak danych o platformach dla zapisanych filmów</div>
+                <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>{tr('no_platform_data')}</div>
               )}
             </div>
           )}
 
           {/* C) Wyszukiwarka "gdzie obejrzę?" */}
           <div>
-            <div style={LABEL_STYLE}>Gdzie obejrzę ten film?</div>
+            <div style={LABEL_STYLE}>{tr('compare_where')}</div>
             <input
-              type="text" placeholder="🔍 Wpisz tytuł filmu lub serialu..."
+              type="text" placeholder={tr('platform_search_placeholder')}
               value={platformSearch} onChange={e => { setPlatformSearch(e.target.value); setPlatformSearchMovie(null); setPlatformSearchProviders(null); }}
               style={INPUT_STYLE}
             />
             {platformSearchLoading && (
-              <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ Szukam...</div>
+              <div style={{ textAlign: "center", padding: 16, color: t.tm, fontSize: 13 }}>⏳ {tr('searching')}</div>
             )}
             {platformSearchResults.length > 0 && !platformSearchMovie && (
               <div style={{ marginTop: 8, background: t.s, border: "1px solid " + t.b, borderRadius: 14, overflow: "hidden" }}>
@@ -2745,16 +2746,16 @@ function App() {
                   <button onClick={() => { setPlatformSearchMovie(null); setPlatformSearchProviders(null); }} style={{ marginLeft: "auto", background: "none", border: "none", color: t.tm, cursor: "pointer", fontSize: 18 }}>×</button>
                 </div>
                 {platformSearchProviders === undefined ? (
-                  <div style={{ fontSize: 13, color: t.tm }}>⏳ Ładowanie platform...</div>
+                  <div style={{ fontSize: 13, color: t.tm }}>⏳ {tr('loading_platforms')}</div>
                 ) : platformSearchProviders === null ? (
-                  <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Brak danych o platformach w Polsce dla tego tytułu</div>
+                  <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>{tr('no_providers_for_title')}</div>
                 ) : (() => {
                   const groups = [
-                    { label: "Streaming", items: platformSearchProviders.flatrate ?? [] },
-                    { label: "Wypożyczenie", items: platformSearchProviders.rent ?? [] },
-                    { label: "Zakup", items: platformSearchProviders.buy ?? [] },
+                    { label: tr('detail_streaming_label'), items: platformSearchProviders.flatrate ?? [] },
+                    { label: tr('detail_rent_label'), items: platformSearchProviders.rent ?? [] },
+                    { label: tr('detail_buy_label'), items: platformSearchProviders.buy ?? [] },
                   ].filter(g => g.items.length > 0);
-                  if (!groups.length) return <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>Niedostępny na platformach streamingowych w Polsce</div>;
+                  if (!groups.length) return <div style={{ fontSize: 13, color: t.tm, textAlign: "center", padding: 16 }}>{tr('not_available_streaming')}</div>;
                   return groups.map(g => (
                     <div key={g.label} style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, textTransform: "uppercase", marginBottom: 8 }}>{g.label}</div>
@@ -2833,17 +2834,17 @@ function App() {
       <div style={{ padding: "8px 20px 20px" }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>❤️ {tr('list_title')}</h2>
         <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>
-          {!user ? "Zaloguj się, żeby zobaczyć swoją listę"
+          {!user ? tr('list_login_prompt')
             : savedMovies.length > 0
               ? `${savedMovies.length} ${savedMovies.length === 1 ? "tytuł" : savedMovies.length < 5 ? "tytuły" : "tytułów"}`
-              : "Brak zapisanych tytułów"}
+              : tr('list_empty_saved')}
         </p>
       </div>
 
       {/* Porównywarka subskrypcji */}
       {(savedList.length > 0 || (savedCacheLoading && savedMovies.length > 0)) && (
         <div style={{ padding: "0 20px", marginBottom: 24 }}>
-          <SectionHeader>Najlepsza subskrypcja dla Ciebie</SectionHeader>
+          <SectionHeader>{tr('best_subscription')}</SectionHeader>
           {savedProvidersLoading && !hasProviderData ? (
             [...Array(2)].map((_, i) => (
               <div key={i} style={{
@@ -2880,7 +2881,7 @@ function App() {
                     {name}
                   </div>
                   <div style={{ fontSize: 12, color: t.tm, marginTop: 2 }}>
-                    pokrywa {count} z {savedList.length} {savedList.length === 1 ? "tytułu" : "tytułów"}
+                    {tr('covers_of_titles', { count, total: savedList.length })}
                   </div>
                 </div>
                 {price && (
@@ -2903,7 +2904,7 @@ function App() {
               textAlign: "center", color: t.tm, fontSize: 13,
             }}>
               <div style={{ fontSize: 24, marginBottom: 6 }}>🌍</div>
-              Żaden z Twoich tytułów nie ma platform streamingowych w Polsce
+              {tr('no_streaming_pl')}
             </div>
           ) : null}
         </div>
@@ -2916,10 +2917,10 @@ function App() {
           <div style={{ textAlign: "center", padding: "60px 20px", color: t.tm }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>🔐</div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: t.tx }}>
-              Zaloguj się żeby zapisywać filmy
+              {tr('list_login_to_save')}
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
-              Twoja lista będzie synchronizowana na wszystkich urządzeniach
+              {tr('list_sync_desc')}
             </div>
             <button
               onClick={() => setShowAuth(true)}
@@ -2929,7 +2930,7 @@ function App() {
                 cursor: "pointer", padding: "12px 32px",
               }}
             >
-              Zaloguj się
+              {tr('header_login')}
             </button>
           </div>
         ) : savedList.length > 0 ? savedList.map(m => (
@@ -2946,7 +2947,7 @@ function App() {
               {tr('list_empty')}
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-              Dodaj filmy klikając 🤍 przy tytule
+              {tr('list_add_hint')}
             </div>
           </div>
         )}
