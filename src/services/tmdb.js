@@ -254,6 +254,9 @@ export function fetchTrendingTV() {
 
 /** Nadchodzące premiery kinowe — strony 1 i 2. */
 export function fetchUpcoming() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
   return Promise.all([
     apiFetch("/movie/upcoming", `&region=${_region}&page=1`),
     apiFetch("/movie/upcoming", `&region=${_region}&page=2`),
@@ -263,6 +266,7 @@ export function fetchUpcoming() {
       .filter(m => {
         if (!m.release_date || seen.has(m.id)) return false;
         if (!notRuUk(m)) return false;
+        if (m.release_date < cutoffStr) return false;
         seen.add(m.id);
         return true;
       })
@@ -295,6 +299,9 @@ export async function discoverMovies({ genreIds = [], minRating = 0, providerId 
 
 /** Pełny kalendarz premier — 3 strony TMDB (ok. 60 filmów). */
 export function fetchUpcomingCalendar() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
   return Promise.all([
     apiFetch("/movie/upcoming", `&region=${_region}&page=1`),
     apiFetch("/movie/upcoming", `&region=${_region}&page=2`),
@@ -306,6 +313,7 @@ export function fetchUpcomingCalendar() {
       .filter(m => {
         if (!m.release_date || seen.has(m.id)) return false;
         if (!notRuUk(m)) return false;
+        if (m.release_date < cutoffStr) return false;
         seen.add(m.id);
         return true;
       })

@@ -2378,7 +2378,7 @@ function App() {
         )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ {tr('sport_live')}</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('sport_subtitle')}</p>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('sport_subtitle')} {REGIONS.find(r => r.code === region)?.flag ?? ''}</p>
         </div>
         <div style={{ padding: "0 20px 16px", display: "flex", gap: 8, overflowX: "auto" }}>
           {DISCIPLINES.map(d => (
@@ -2395,7 +2395,7 @@ function App() {
                 whiteSpace: "nowrap", transition: "all 0.15s",
               }}
             >
-              {d.icon} {d.label}
+              {d.icon} {tr('sport_filter_' + d.id)}
             </button>
           ))}
         </div>
@@ -2404,7 +2404,7 @@ function App() {
           {/* Nadchodzące mecze z football-data.org — pogrupowane po dniach i ligach */}
           {showFootball && footballLoading && (
             <div style={{ marginBottom: 24 }}>
-              <SectionHeader>{tr('sport_matches')}</SectionHeader>
+              <SectionHeader>{tr('sport_upcoming_matches')}</SectionHeader>
               {[...Array(4)].map((_, i) => (
                 <div key={i} style={{ background: t.s, border: "1px solid " + t.b, borderRadius: 12, padding: "10px 14px", marginBottom: 6 }}>
                   <div className="skeleton" style={{ height: 10, borderRadius: 4, width: "40%", marginBottom: 8 }} />
@@ -2415,7 +2415,7 @@ function App() {
             </div>
           )}
           {showFootball && !footballLoading && footballMatches.length > 0 && (() => {
-            const PL_DAYS = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+            const TR_DAYS = [tr('day_sunday'), tr('day_monday'), tr('day_tuesday'), tr('day_wednesday'), tr('day_thursday'), tr('day_friday'), tr('day_saturday')];
             const PL_MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
             const byDay = {};
             for (const m of footballMatches) {
@@ -2431,11 +2431,11 @@ function App() {
             const dayLabel = k => {
               const [d, mo] = k.split(".").map(Number);
               const date = new Date(new Date().getFullYear(), mo - 1, d);
-              return `${PL_DAYS[date.getDay()]}, ${d} ${PL_MONTHS[mo - 1]}`;
+              return `${TR_DAYS[date.getDay()]}, ${d} ${PL_MONTHS[mo - 1]}`;
             };
             return (
               <div style={{ marginBottom: 24 }}>
-                <SectionHeader>{tr('sport_matches')}</SectionHeader>
+                <SectionHeader>{tr('sport_upcoming_matches')}</SectionHeader>
                 {sortedDays.map(([dayKey, leagues]) => (
                   <div key={dayKey} style={{ marginBottom: 20 }}>
                     <div style={{
@@ -2477,7 +2477,7 @@ function App() {
           {/* Wydarzenia ręczne / planowane */}
           {filteredSports.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              {showFootball && <SectionHeader>{tr('sport_planned')}</SectionHeader>}
+              {showFootball && <SectionHeader>{tr('sport_planned_events')}</SectionHeader>}
               {filteredSports.map(s => <SportCard key={s.id} sport={s} />)}
             </div>
           )}
@@ -2526,7 +2526,7 @@ function App() {
         )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 {tr('premieres_calendar')}</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('premieres_subtitle')}</p>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('premieres_subtitle')} {REGIONS.find(r => r.code === region)?.flag ?? ''}</p>
         </div>
 
         {premieresLoading ? (
