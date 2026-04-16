@@ -7,17 +7,16 @@ export function LanguageProvider({ children }) {
   const [language, setLanguageState] = useState(() => {
     try { return localStorage.getItem("wtw-language") || "pl-PL"; } catch { return "pl-PL"; }
   });
-  const [region, setRegionState] = useState(() => {
-    try { return localStorage.getItem("wtw-region") || "PL"; } catch { return "PL"; }
-  });
+  // Region is always PL — UI selector hidden until multi-market expansion
+  const [region, setRegionState] = useState("PL");
 
   function setLanguage(lang) {
     setLanguageState(lang);
     try { localStorage.setItem("wtw-language", lang); } catch {}
   }
-  function setRegion(reg) {
+  // setRegion preserved for future use — does NOT persist to UI or localStorage
+  function setRegion(reg) { // eslint-disable-line no-unused-vars
     setRegionState(reg);
-    try { localStorage.setItem("wtw-region", reg); } catch {}
   }
 
   const t = useCallback((key, vars = {}) => {

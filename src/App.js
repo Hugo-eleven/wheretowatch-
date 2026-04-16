@@ -124,11 +124,12 @@ function LocaleSelector({ language, region, setLanguage, setRegion }) {
           <option key={l.code} value={l.code}>{isMobile ? l.flag : `${l.flag} ${l.name}`}</option>
         ))}
       </select>
-      <select value={region} onChange={e => setRegion(e.target.value)} style={SELECT_STYLE} title="Region">
+      {/* TODO: Region selector - ukryty do czasu rozbudowy na inne rynki. Nie usuwać, przyda się w przyszłości */}
+      {/* <select value={region} onChange={e => setRegion(e.target.value)} style={SELECT_STYLE} title="Region">
         {REGIONS.map(r => (
           <option key={r.code} value={r.code}>{isMobile ? r.flag : `${r.flag} ${r.name}`}</option>
         ))}
-      </select>
+      </select> */}
     </div>
   );
 }
@@ -2297,7 +2298,7 @@ function App() {
           {/* Gdzie obejrzeć */}
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>
-              {tr('detail_where_to_watch')} {REGIONS.find(r => r.code === region)?.flag ?? ""} {REGIONS.find(r => r.code === region)?.name ?? region}
+              {tr('detail_where_to_watch_pl')}
             </SectionHeader>
             {detailLoading ? (
               <div>
@@ -2440,7 +2441,7 @@ function App() {
         )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>⚽ {tr('sport_live')}</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('sport_subtitle')} {REGIONS.find(r => r.code === region)?.flag ?? ''}</p>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('sport_subtitle')}</p>
         </div>
         <div style={{ padding: "0 20px 16px", display: "flex", gap: 8, overflowX: "auto" }}>
           {DISCIPLINES.map(d => (
@@ -2588,7 +2589,7 @@ function App() {
         )}
         <div style={{ padding: "8px 20px 16px" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>📅 {tr('premieres_calendar')}</h2>
-          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('premieres_subtitle')} {REGIONS.find(r => r.code === region)?.flag ?? ''}</p>
+          <p style={{ fontSize: 13, color: t.tm, margin: "4px 0 0" }}>{tr('premieres_subtitle')}</p>
         </div>
 
         {premieresLoading ? (
