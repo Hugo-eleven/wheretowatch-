@@ -9,7 +9,7 @@ import {
   fetchGenres, discoverMovies, setTMDBLocale,
 } from "./services/tmdb";
 import { useLanguage } from "./context/LanguageContext";
-import { LANGUAGES, REGIONS } from "./config/locales";
+import { LANGUAGES, REGIONS } from "./config/locales"; // eslint-disable-line no-unused-vars
 import { fetchOMDbRatings } from "./services/omdb";
 import { fetchScheduledMatches } from "./services/football";
 import { supabase, loadSavedFromSupabase, addSavedToSupabase, removeSavedFromSupabase, fetchSportsEvents } from "./services/supabase";
