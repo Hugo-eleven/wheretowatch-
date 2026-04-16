@@ -955,7 +955,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 function App() {
   const { language, region, setLanguage, setRegion, t: tr } = useLanguage();
   const [screen, setScreen] = useState("home");
-  const [prevScreen, setPrevScreen] = useState("home");
+
   const [navigationHistory, setNavigationHistory] = useState([]);
   // Generation counter — incremented by goBack() to cancel stale openMovie async results
   const openMovieGenRef = useRef(0);
@@ -1322,7 +1322,7 @@ function App() {
     setNavigationHistory(h => [...h, historyEntry]);
 
     window.scrollTo(0, 0);
-    setPrevScreen(from || screen);
+
     setSelectedMovie(movie);
     setSelectedProviders(null);
     setSelectedCredits([]);
