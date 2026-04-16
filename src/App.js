@@ -956,6 +956,7 @@ function App() {
   const { language, region, setLanguage, setRegion, t: tr } = useLanguage();
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
+  const [navigationHistory, setNavigationHistory] = useState([]);
 
   // Dane z API
   const [popularMovies, setPopularMovies] = useState([]);
@@ -1298,6 +1299,25 @@ function App() {
   }, [screen, savedMovies.length, popularMovies.length, searchResults.length, Object.keys(savedMoviesCache).length]);
 
   async function openMovie(movie, from) {
+    // Push current state to history so goBack() can restore it
+    const historyEntry = screen === "detail" && selectedMovie
+      ? {
+          screen: "detail",
+          selectedMovie,
+          selectedProviders,
+          selectedCredits,
+          similarMovies,
+          ratings,
+          trailerKey,
+          selectedSeason,
+          episodes,
+          similarLabel,
+          scrollY: window.scrollY,
+        }
+      : { screen: from || screen, scrollY: window.scrollY };
+    setNavigationHistory(h => [...h, historyEntry]);
+
+    window.scrollTo(0, 0);
     setPrevScreen(from || screen);
     setSelectedMovie(movie);
     setSelectedProviders(null);
@@ -1355,6 +1375,34 @@ function App() {
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  function goBack() {
+    if (navigationHistory.length === 0) {
+      setScreen("home");
+      return;
+    }
+    const prev = navigationHistory[navigationHistory.length - 1];
+    setNavigationHistory(h => h.slice(0, -1));
+    setScreen(prev.screen);
+    if (prev.screen === "detail" && prev.selectedMovie) {
+      setSelectedMovie(prev.selectedMovie);
+      setSelectedProviders(prev.selectedProviders ?? null);
+      setSelectedCredits(prev.selectedCredits ?? []);
+      setSimilarMovies(prev.similarMovies ?? []);
+      setRatings(prev.ratings ?? null);
+      setTrailerKey(prev.trailerKey ?? null);
+      setSelectedSeason(prev.selectedSeason ?? null);
+      setEpisodes(prev.episodes ?? []);
+      setSimilarLabel(prev.similarLabel ?? "similar_films");
+      setDetailLoading(false);
+    }
+    setTimeout(() => window.scrollTo(0, prev.scrollY || 0), 0);
+  }
+
+  function navigateMain(screenName) {
+    setNavigationHistory([]);
+    setScreen(screenName);
   }
 
   function handleSignOut() {
@@ -1628,7 +1676,7 @@ function App() {
             savedMoviesData={[...popularMovies, ...Object.values(savedMoviesCache)].filter(m => savedMovies.includes(m.id))}
           />
         )}
-        <Navigation screen={screen} setScreen={setScreen} />
+        <Navigation screen={screen} setScreen={navigateMain} />
       </div>
     );
   }
@@ -1816,7 +1864,7 @@ function App() {
           );
         })()}
 
-        <Navigation screen={screen} setScreen={setScreen} />
+        <Navigation screen={screen} setScreen={navigateMain} />
       </div>
     );
   }
@@ -1833,17 +1881,20 @@ function App() {
     return (
       <div style={WRAP}>
         <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button
-            onClick={() => setScreen(prevScreen)}
-            style={{
-              background: t.s, border: "1px solid " + t.b,
-              borderRadius: 10, color: t.a, fontSize: 13,
-              fontWeight: 700, cursor: "pointer", padding: "7px 14px",
-              transition: "all 0.15s",
-            }}
-          >
-            {tr('btn_back')}
-          </button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <button
+              onClick={goBack}
+              style={{ background: "none", border: "none", color: "#E50914", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: 0 }}
+            >
+              ← {tr('btn_back')}
+            </button>
+            <button
+              onClick={() => { setNavigationHistory([]); setScreen("home"); }}
+              style={{ background: "none", border: "none", color: "#888", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: 0 }}
+            >
+              🏠 {tr('btn_home')}
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar
               user={user}
@@ -2345,7 +2396,7 @@ function App() {
             onAuth={u => { setUser(u); setShowAuth(false); }}
           />
         )}
-        <Navigation screen="search" setScreen={setScreen} />
+        <Navigation screen="search" setScreen={navigateMain} />
       </div>
     );
   }
@@ -2494,7 +2545,7 @@ function App() {
             </div>
           )}
         </div>
-        <Navigation screen={screen} setScreen={setScreen} />
+        <Navigation screen={screen} setScreen={navigateMain} />
       </div>
     );
   }
@@ -2550,7 +2601,7 @@ function App() {
           </div>
         )}
 
-        <Navigation screen={screen} setScreen={setScreen} />
+        <Navigation screen={screen} setScreen={navigateMain} />
       </div>
     );
   }
@@ -2595,7 +2646,7 @@ function App() {
               {tr('btn_home')}
             </button>
           </div>
-          <Navigation screen="home" setScreen={setScreen} />
+          <Navigation screen="home" setScreen={navigateMain} />
         </div>
       );
     }
@@ -2777,7 +2828,7 @@ function App() {
             )}
           </div>
         </div>
-        <Navigation screen={screen} setScreen={setScreen} />
+        <Navigation screen={screen} setScreen={navigateMain} />
       </div>
     );
   }
@@ -2952,7 +3003,7 @@ function App() {
           </div>
         )}
       </div>
-      <Navigation screen={screen} setScreen={setScreen} />
+      <Navigation screen={screen} setScreen={navigateMain} />
     </div>
   );
 }
