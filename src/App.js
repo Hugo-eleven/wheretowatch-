@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { t } from "./theme";
 import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sports";
 import {
@@ -957,6 +957,8 @@ function App() {
   const [screen, setScreen] = useState("home");
   const [prevScreen, setPrevScreen] = useState("home");
   const [navigationHistory, setNavigationHistory] = useState([]);
+  // Generation counter — incremented by goBack() to cancel stale openMovie async results
+  const openMovieGenRef = useRef(0);
 
   // Dane z API
   const [popularMovies, setPopularMovies] = useState([]);
@@ -1299,6 +1301,8 @@ function App() {
   }, [screen, savedMovies.length, popularMovies.length, searchResults.length, Object.keys(savedMoviesCache).length]);
 
   async function openMovie(movie, from) {
+    const myGen = ++openMovieGenRef.current;
+
     // Push current state to history so goBack() can restore it
     const historyEntry = screen === "detail" && selectedMovie
       ? {
@@ -1341,6 +1345,8 @@ function App() {
         fetchSimilar(movie.id, mediaType),
         fetchVideos(movie.id, mediaType),
       ]);
+      // Abort if goBack() was called while we were fetching
+      if (myGen !== openMovieGenRef.current) return;
       setSelectedMovie(details);
       setSelectedProviders(providers);
       setSelectedCredits(credits);
@@ -1356,6 +1362,7 @@ function App() {
       } else {
         try {
           const recs = await fetchRecommendations(movie.id, mediaType);
+          if (myGen !== openMovieGenRef.current) return;
           const goodRecs = recs.filter(m => (m.imdb ?? 0) >= 6.0);
           setSimilarMovies(goodRecs.length > 0 ? goodRecs : goodSimilar);
           setSimilarLabel("recommended");
@@ -1368,16 +1375,20 @@ function App() {
       const imdbId = await fetchExternalIds(movie.id, mediaType);
       if (imdbId) {
         const omdb = await fetchOMDbRatings(imdbId);
+        if (myGen !== openMovieGenRef.current) return;
         setRatings(omdb);
       }
     } catch (e) {
       // Zostaw to co mamy z listy
     } finally {
-      setDetailLoading(false);
+      if (myGen === openMovieGenRef.current) setDetailLoading(false);
     }
   }
 
   function goBack() {
+    // Cancel any in-flight openMovie fetches so they don't overwrite restored state
+    openMovieGenRef.current++;
+
     if (navigationHistory.length === 0) {
       setScreen("home");
       return;
@@ -1385,7 +1396,7 @@ function App() {
     const prev = navigationHistory[navigationHistory.length - 1];
     setNavigationHistory(h => h.slice(0, -1));
     setScreen(prev.screen);
-    if (prev.screen === "detail" && prev.selectedMovie) {
+    if (prev.selectedMovie) {
       setSelectedMovie(prev.selectedMovie);
       setSelectedProviders(prev.selectedProviders ?? null);
       setSelectedCredits(prev.selectedCredits ?? []);

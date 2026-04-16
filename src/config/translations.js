@@ -1213,7 +1213,7 @@ const translations = {
     btn_try_again: '重试',
     btn_change_mode: '切换模式',
     btn_back: '返回',
-    btn_home: '主页',
+    btn_home: '首页',
     search_placeholder: '搜索电影和剧集...',
     search_movies: '电影',
     search_series: '剧集',
