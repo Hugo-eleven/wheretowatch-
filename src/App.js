@@ -1274,17 +1274,21 @@ function App() {
       searchMulti(searchQuery)
         .then(results => {
           const q = searchQuery.trim().toLowerCase();
-          const titles = r => [r.title, r.name, r.original_title, r.original_name].filter(Boolean).map(s => s.toLowerCase());
+          const qEsc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const ts = r => [r.title, r.name, r.original_title, r.original_name].filter(Boolean).map(s => s.toLowerCase());
           const score = r => {
-            const ts = titles(r);
-            let s = r.popularity || 0;
-            s += (r.vote_average || 0) * 50;
-            if (ts.some(t => t === q))           s += 1000;
-            else if (ts.some(t => t.startsWith(q))) s += 500;
-            else if (ts.some(t => new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(t))) s += 200;
+            const titles = ts(r);
+            let s = (r.popularity || 0) * 10;
+            s += (r.vote_average || 0) * 10;
+            s += (r.vote_count || 0) > 1000 ? 200 : 0;
+            if (titles.some(t => t === q))                                              s += 100;
+            else if (titles.some(t => t.startsWith(q)))                                s += 50;
+            else if (titles.some(t => new RegExp(`\\b${qEsc}\\b`).test(t)))            s += 20;
             return s;
           };
-          setSearchResults([...results].sort((a, b) => score(b) - score(a)));
+          const sorted = [...results].sort((a, b) => score(b) - score(a));
+          console.log('[search] top5:', sorted.slice(0, 5).map(r => ({ title: r.title || r.name, popularity: r.popularity, score: score(r) })));
+          setSearchResults(sorted);
         })
         .catch(() => setSearchResults([]))
         .finally(() => setSearchLoading(false));
