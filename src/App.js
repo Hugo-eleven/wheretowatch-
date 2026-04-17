@@ -1272,7 +1272,21 @@ function App() {
     setSearchLoading(true);
     const timer = setTimeout(() => {
       searchMulti(searchQuery)
-        .then(setSearchResults)
+        .then(results => {
+          const q = searchQuery.trim().toLowerCase();
+          const titleOf = r => (r.title || r.name || r.original_title || "").toLowerCase();
+          const priority = r => {
+            const t = titleOf(r);
+            if (t === q) return 0;
+            if (t.startsWith(q)) return 1;
+            return 2;
+          };
+          setSearchResults([...results].sort((a, b) => {
+            const pd = priority(a) - priority(b);
+            if (pd !== 0) return pd;
+            return (b.popularity || 0) - (a.popularity || 0);
+          }));
+        })
         .catch(() => setSearchResults([]))
         .finally(() => setSearchLoading(false));
     }, 300);
