@@ -32,6 +32,7 @@ const TMDB_PLATFORMS_PL = [
   { id: "185",  name: "Player.pl",        price: "20 zł/msc" },
 ];
 
+// eslint-disable-next-line no-unused-vars
 const COUNTRY_CODES = [
   { code: "", key: "country_all" },
   { code: "US", key: "country_usa" },
@@ -1278,10 +1279,10 @@ function App() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Ładuj gatunki raz przy starcie
+  // Ładuj gatunki — re-fetchuj przy zmianie języka
   useEffect(() => {
     fetchGenres().then(setGenres).catch(() => {});
-  }, []);
+  }, [language]);
 
   // Discover z filtrami (debounce 400ms)
   useEffect(() => {
@@ -1878,12 +1879,13 @@ function App() {
                           {TMDB_PLATFORMS_PL.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       </div>
-                      <div style={{ flex: 1 }}>
+                      {/* TODO: Country filter - ukryty, skupiamy się na Polsce. Odkomentować przy rozbudowie na inne rynki */}
+                      {/* <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('country')}</div>
                         <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
                           {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{tr(c.key)}</option>)}
                         </select>
-                      </div>
+                      </div> */}
                     </div>
 
                     {hasFilters && (
