@@ -32,15 +32,15 @@ const TMDB_PLATFORMS_PL = [
   { id: "185",  name: "Player.pl",        price: "20 zł/msc" },
 ];
 
-const COUNTRY_OPTIONS = [
-  { code: "", label: "Wszystkie" },
-  { code: "US", label: "USA" },
-  { code: "PL", label: "Polska" },
-  { code: "GB", label: "Wielka Brytania" },
-  { code: "FR", label: "Francja" },
-  { code: "DE", label: "Niemcy" },
-  { code: "KR", label: "Korea Płd." },
-  { code: "JP", label: "Japonia" },
+const COUNTRY_CODES = [
+  { code: "", key: "country_all" },
+  { code: "US", key: "country_usa" },
+  { code: "PL", key: "country_poland" },
+  { code: "GB", key: "country_uk" },
+  { code: "FR", key: "country_france" },
+  { code: "DE", key: "country_germany" },
+  { code: "KR", key: "country_south_korea" },
+  { code: "JP", key: "country_japan" },
 ];
 
 const PLATFORM_PRICES = {
@@ -1881,7 +1881,7 @@ function App() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: t.tm, marginBottom: 6, textTransform: "uppercase" }}>{tr('country')}</div>
                         <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)} style={{ ...FILTER_INPUT, width: "100%", boxSizing: "border-box" }}>
-                          {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                          {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{tr(c.key)}</option>)}
                         </select>
                       </div>
                     </div>
@@ -2227,7 +2227,7 @@ function App() {
                                 </span>
                               ) : (
                                 <span style={{ fontSize: 10, color: t.tm, flexShrink: 0, marginLeft: 8 }}>
-                                  Brak oceny
+                                  {tr('no_rating')}
                                 </span>
                               )}
                             </div>
@@ -2277,7 +2277,7 @@ function App() {
 
           <div style={{ marginBottom: 20 }}>
             <SectionHeader>{tr('detail_description')}</SectionHeader>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis}</p>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: t.tm, margin: 0 }}>{m.synopsis || tr('no_description')}</p>
           </div>
 
           {/* Obsada */}
