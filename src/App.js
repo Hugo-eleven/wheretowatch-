@@ -1274,18 +1274,17 @@ function App() {
       searchMulti(searchQuery)
         .then(results => {
           const q = searchQuery.trim().toLowerCase();
-          const titleOf = r => (r.title || r.name || r.original_title || "").toLowerCase();
-          const priority = r => {
-            const t = titleOf(r);
-            if (t === q) return 0;
-            if (t.startsWith(q)) return 1;
-            return 2;
+          const titles = r => [r.title, r.name, r.original_title, r.original_name].filter(Boolean).map(s => s.toLowerCase());
+          const score = r => {
+            const ts = titles(r);
+            let s = r.popularity || 0;
+            s += (r.vote_average || 0) * 50;
+            if (ts.some(t => t === q))           s += 1000;
+            else if (ts.some(t => t.startsWith(q))) s += 500;
+            else if (ts.some(t => new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`).test(t))) s += 200;
+            return s;
           };
-          setSearchResults([...results].sort((a, b) => {
-            const pd = priority(a) - priority(b);
-            if (pd !== 0) return pd;
-            return (b.popularity || 0) - (a.popularity || 0);
-          }));
+          setSearchResults([...results].sort((a, b) => score(b) - score(a)));
         })
         .catch(() => setSearchResults([]))
         .finally(() => setSearchLoading(false));
