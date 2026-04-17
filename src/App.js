@@ -108,6 +108,27 @@ function useIsMobile() {
   return isMobile;
 }
 
+const LANG_FLAG_MAP = {
+  'pl-PL': 'pl', 'en-US': 'gb', 'de-DE': 'de', 'uk-UA': 'ua',
+  'be-BY': 'by', 'ru-RU': 'ru', 'lt-LT': 'lt', 'cs-CZ': 'cz',
+  'sk-SK': 'sk', 'vi-VN': 'vn', 'hy-AM': 'am', 'rom': 'ro',
+  'es-ES': 'es', 'fr-FR': 'fr', 'pt-BR': 'br', 'zh-CN': 'cn',
+  'hi-IN': 'in', 'ar-SA': 'sa', 'ja-JP': 'jp',
+};
+
+function FlagImg({ code, size = 24 }) {
+  const iso = LANG_FLAG_MAP[code];
+  if (!iso) return null;
+  const h = Math.round(size * 18 / 24);
+  return (
+    <img
+      src={`https://flagcdn.com/${size}x${h}/${iso}.png`}
+      alt={iso.toUpperCase()}
+      style={{ width: size, height: h, borderRadius: 2, display: "block", flexShrink: 0 }}
+    />
+  );
+}
+
 function LocaleSelector({ language, setLanguage }) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -136,7 +157,7 @@ function LocaleSelector({ language, setLanguage }) {
           fontFamily: "inherit", whiteSpace: "nowrap",
         }}
       >
-        <span style={{ fontSize: 18, lineHeight: 1 }}>{current.flag}</span>
+        <FlagImg code={current.code} size={24} />
         {!isMobile && <span>{current.name}</span>}
         {!isMobile && <span style={{ fontSize: 10, opacity: 0.7 }}>▼</span>}
       </button>
@@ -164,7 +185,7 @@ function LocaleSelector({ language, setLanguage }) {
                 onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "#333"; }}
                 onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
               >
-                <span style={{ fontSize: 20, lineHeight: 1 }}>{l.flag}</span>
+                <FlagImg code={l.code} size={24} />
                 <span>{l.name}</span>
               </div>
             );
