@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "./theme";
 import { SPORTS_EVENTS, DISCIPLINES, filterByDiscipline } from "./services/sports";
 import {
@@ -108,28 +108,69 @@ function useIsMobile() {
   return isMobile;
 }
 
-function LocaleSelector({ language, region, setLanguage, setRegion }) {
+function LocaleSelector({ language, setLanguage }) {
   const isMobile = useIsMobile();
-  const SELECT_STYLE = {
-    background: t.s, border: "1px solid " + t.b,
-    color: t.tx, borderRadius: 8, fontSize: 13,
-    padding: "4px 4px", cursor: "pointer", outline: "none",
-    fontFamily: "inherit", maxWidth: isMobile ? 38 : 130,
-    overflow: "hidden",
-  };
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
+
+  const handleOutsideClick = useCallback((e) => {
+    if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (open) document.addEventListener("mousedown", handleOutsideClick);
+    else document.removeEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open, handleOutsideClick]);
+
   return (
-    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-      <select value={language} onChange={e => setLanguage(e.target.value)} style={SELECT_STYLE} title="Język">
-        {LANGUAGES.map(l => (
-          <option key={l.code} value={l.code}>{isMobile ? l.flag : `${l.flag} ${l.name}`}</option>
-        ))}
-      </select>
-      {/* TODO: Region selector - ukryty do czasu rozbudowy na inne rynki. Nie usuwać, przyda się w przyszłości */}
-      {/* <select value={region} onChange={e => setRegion(e.target.value)} style={SELECT_STYLE} title="Region">
-        {REGIONS.map(r => (
-          <option key={r.code} value={r.code}>{isMobile ? r.flag : `${r.flag} ${r.name}`}</option>
-        ))}
-      </select> */}
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: t.s, border: "1px solid #333",
+          color: t.tx, borderRadius: 8, fontSize: 13,
+          padding: "4px 8px", cursor: "pointer", outline: "none",
+          fontFamily: "inherit", whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{current.flag}</span>
+        {!isMobile && <span>{current.name}</span>}
+        {!isMobile && <span style={{ fontSize: 10, opacity: 0.7 }}>▼</span>}
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", right: 0,
+          background: "#1a1a1a", border: "1px solid #333",
+          borderRadius: 8, zIndex: 1000,
+          maxHeight: 400, overflowY: "auto", width: 200,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+        }}>
+          {LANGUAGES.map(l => {
+            const isSelected = l.code === language;
+            return (
+              <div
+                key={l.code}
+                onClick={() => { setLanguage(l.code); setOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 12px", cursor: "pointer",
+                  background: isSelected ? "#E50914" : "transparent",
+                  color: isSelected ? "#fff" : t.tx,
+                  fontSize: 14,
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "#333"; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{l.flag}</span>
+                <span>{l.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1515,7 +1556,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -1712,7 +1753,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -1915,7 +1956,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2429,7 +2470,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2577,7 +2618,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2633,7 +2674,7 @@ function App() {
                 isAdmin={isAdmin}
                 onAdmin={() => setScreen("admin")}
               />
-              <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+              <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
             </div>
           </div>
@@ -2674,7 +2715,7 @@ function App() {
               isAdmin={isAdmin}
               onAdmin={() => setScreen("admin")}
             />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2714,7 +2755,7 @@ function App() {
           <Logo />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <UserAvatar user={user} onSignOut={handleSignOut} onShowAuth={() => setShowAuth(true)} isAdmin={isAdmin} onAdmin={() => setScreen("admin")} />
-            <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+            <LocaleSelector language={language} setLanguage={setLanguage} />
             <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
           </div>
         </div>
@@ -2884,7 +2925,7 @@ function App() {
             isAdmin={isAdmin}
             onAdmin={() => setScreen("admin")}
           />
-          <LocaleSelector language={language} region={region} setLanguage={setLanguage} setRegion={setRegion} />
+          <LocaleSelector language={language} setLanguage={setLanguage} />
           <ThemeToggle darkMode={darkMode} toggle={toggleTheme} />
         </div>
       </div>
