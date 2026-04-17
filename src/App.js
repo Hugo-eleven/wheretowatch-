@@ -995,6 +995,7 @@ function RandomMovieModal({ onClose, onOpen, genres, savedMoviesData = [] }) {
 }
 
 function App() {
+  // eslint-disable-next-line no-unused-vars
   const { language, region, setLanguage, setRegion, t: tr } = useLanguage();
   const [screen, setScreen] = useState("home");
 
